@@ -11,7 +11,7 @@
 #include "DHCPConst.h"
 #include "Logger.h"
 #include "SmartPtr.h"
-#include <cstdio>
+#include "hex.h"
 
 // standard options specified in RFC3315, pg. 99
 bool OptInMsg[13][20] = {
@@ -122,10 +122,9 @@ int allowOptInOptInBulk(int msgType, int parent, int subopt, int pos) {
     }
     return 0;
 }
+int allowOptInOpt(int msgType, int parent, int subopt) {
 
-int allowOptInOpt(int msgType, int parent, int subopt){
-
-// additional options (not specified in RFC3315)
+    // additional options (not specified in RFC3315)
     if (subopt>20)
         return 1;
 
@@ -199,17 +198,6 @@ char *getDigestName(enum DigestTypes type) {
     return DIGESTNAME[type];
 }
 
-void PrintHex(const std::string& message, char *buffer, unsigned len) {
-    char *buf = new char[len*3+1];
-
-    if (len) {
-        for (unsigned int j = 0; j < len; j++) {
-            sprintf(buf + j*3, "%02x ", (unsigned char) *(buffer+j));
-        }
-
-        Log(Debug) << message << buf << LogEnd;
-    } else
-        Log(Debug) << message << "N/A (zero length)" << LogEnd;
-
-    delete [] buf;
+void PrintHex(const std::string& message, const uint8_t *buffer, unsigned len) {
+    Log(Debug) << message << hexToText(buffer, len, false, false) << LogEnd;
 }

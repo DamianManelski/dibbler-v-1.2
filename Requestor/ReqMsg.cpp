@@ -65,7 +65,6 @@ int TReqMsg::getReqMsgType()
 {
     return ReqMsgType;
 }
-
 void TReqMsg::addOption(SPtr<TOpt> opt)
 {
     Options.push_back(opt);

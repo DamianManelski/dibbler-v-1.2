@@ -26,7 +26,6 @@ class TReqOptAddr : public TOptIAAddress
 {
 public:
     TReqOptAddr(int type, SPtr<TIPv6Addr> addr, TMsg * parent);
-
 protected:
     bool doDuties();
 };
@@ -37,20 +36,17 @@ public:
     TReqOptDUID(int type, SPtr<TDUID> duid, TMsg* parent);
 protected:
     bool doDuties();
-
 };
 
 class TReqOptGeneric : public TOptGeneric
 {
 public:
     TReqOptGeneric(int optType, char * data, int dataLen, TMsg* parent);
-   // TReqOptGeneric(int optType, char * data, int dataLen, TMsg* parent, int remoteId);
 protected:
     bool doDuties();
 };
 
-
-
+#if 0
 class TReqOptRemoteId : public TOptVendorSpecInfo
 {
 public:
@@ -61,8 +57,7 @@ protected:
     bool doDuties();
     char * remoreIdRqOpt;
 };
-
-
+#endif
 class TReqOptRelayId : public TOptDUID
 {
     public:

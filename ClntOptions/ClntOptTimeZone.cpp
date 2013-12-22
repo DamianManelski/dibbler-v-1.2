@@ -8,6 +8,7 @@
  */
 
 #include "ClntOptTimeZone.h"
+#include "OptDUID.h"
 #include "ClntMsg.h"
 #include "Logger.h"
 
@@ -22,7 +23,7 @@ TClntOptTimeZone::TClntOptTimeZone(char *buf, int bufsize, TMsg* parent)
 
 }
 
-bool TClntOptTimeZone::isValid() {
+bool TClntOptTimeZone::isValid() const {
     /// @todo: check is somehow
     return true;
 }
@@ -32,8 +33,8 @@ bool TClntOptTimeZone::doDuties() {
     int ifindex = Parent->getIface();
 
     if (!this->DUID) {
-        Log(Error) << "Unable to find proper DUID while " << reason << LogEnd;
-        return false;
+	Log(Error) << "Unable to find proper DUID while " << reason << LogEnd;
+	return false;
     }
 
     SPtr<TClntIfaceIface> iface = (Ptr*)ClntIfaceMgr().getIfaceByID(ifindex);

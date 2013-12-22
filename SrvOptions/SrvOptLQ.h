@@ -28,7 +28,7 @@ class TSrvOptLQClientLink;
 class TSrvOptLQ : public TOpt
 {
   public:
-    TSrvOptLQ(char * buf, int bufsize, TMsg* parent);
+    TSrvOptLQ(char * buf, int bufsize, TMsg* parent);    
     TSrvOptLQ(char * buf, int bufSize, TMsg* parent, int msgType);
     bool doDuties();
     ELeaseQueryType getQueryType();

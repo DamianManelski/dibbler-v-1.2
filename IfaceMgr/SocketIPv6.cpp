@@ -37,8 +37,8 @@ int TIfaceSocket::tcpConnnectionCount=0;
  * @param ifaceonly force interface-only flag in setsockopt()?
  * @param reuse   should socket be bound with reuse flag in setsockopt()?
  */
-TIfaceSocket::TIfaceSocket(char * iface, int ifindex, int port,SPtr<TIPv6Addr> addr, bool ifaceonly, bool reuse) { 
-
+TIfaceSocket::TIfaceSocket(char * iface, int ifindex, int port,
+                                   SPtr<TIPv6Addr> addr, bool ifaceonly, bool reuse) { 
     if (this->Count==0) {
         FD_ZERO(getFDS());
     }
@@ -61,7 +61,7 @@ enum EState TIfaceSocket::getStatus() {
  */
 TIfaceSocket::TIfaceSocket(char * iface,int ifaceid, int port,bool ifaceonly, bool reuse) {
     if (this->Count==0) {
-	FD_ZERO(getFDS());
+        FD_ZERO(getFDS());
     }
 
     // bind it to any address (::)
@@ -93,7 +93,7 @@ TIfaceSocket::TIfaceSocket(char *iface, int ifaceid, SPtr<TIPv6Addr> addr, int p
  * @return negative error code (or 0 if everything is ok)
  */
 int TIfaceSocket::createSocket(char * iface, int ifaceid, SPtr<TIPv6Addr> addr, 
-				   int port, bool ifaceonly, bool reuse) {
+                                   int port, bool ifaceonly, bool reuse) {
     int sock;
 
     // store info about this socket 
@@ -112,12 +112,12 @@ int TIfaceSocket::createSocket(char * iface, int ifaceid, SPtr<TIPv6Addr> addr,
 
     // create socket
     sock = sock_add(this->Iface, this->IfaceID, addr->getPlain(), 
-		    this->Port, ifaceonly?1:0, reuse?1:0);
+                    this->Port, ifaceonly?1:0, reuse?1:0);
 
     if (sock<0) {
-	printError(sock, iface, ifaceid, addr, port);
-	this->Status = STATE_FAILED;
-	return -3;
+        printError(sock, iface, ifaceid, addr, port);
+        this->Status = STATE_FAILED;
+        return -3;
     }
 
     this->FD = sock;
@@ -130,8 +130,6 @@ int TIfaceSocket::createSocket(char * iface, int ifaceid, SPtr<TIPv6Addr> addr,
 
     return 0;
 }
-
-
 
 /**
  * creates socket on this interface.
@@ -182,8 +180,6 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
     }
     return 0;
 }
-
-
 /**
  * sends data through socket
  * @param buf - buffer to send
@@ -201,8 +197,8 @@ int TIfaceSocket::send(char * buf,int len, SPtr<TIPv6Addr> addr,int port) {
     result = sock_send(this->FD, addr->getPlain(), buf, len, port, this->IfaceID);
 
     if (result<0) {
-	printError(result, this->Iface, this->IfaceID, addr, port);
-	return -1;
+        printError(result, this->Iface, this->IfaceID, addr, port);
+        return -1;
     }
 
     /* send success full */
@@ -234,7 +230,6 @@ int TIfaceSocket::recv(char * buf, SPtr<TIPv6Addr> addr) {
     addr->setAddr(packedAddr);
     return len;
 }
-
 int TIfaceSocket::terminate_tcp(int fd, int how)
 {
     terminate_tcp_connection(fd,how);
@@ -370,7 +365,10 @@ SPtr<TIPv6Addr> TIfaceSocket::getAddr() {
  */
 TIfaceSocket::~TIfaceSocket() {
     if (Status!=STATE_CONFIGURED) 
-	return;
+        return;
+
+    Log(Debug) << "Closing socket " << this->FD << " on " << Addr->getPlain()
+               << ":" << Port << " on interface " << Iface << "/" << IfaceID << LogEnd;
 
     //execute low-level function
     sock_del(this->FD);
@@ -386,20 +384,20 @@ void TIfaceSocket::printError(int error, char * iface, int ifaceid, SPtr<TIPv6Ad
     switch (error) {
     case LOWLEVEL_ERROR_UNSPEC:
         Log(Error) << "Unable to create socket. Is IPv6 protocol supported in your system?" 
-		   << LogEnd;
+                   << LogEnd;
         break;
     case LOWLEVEL_ERROR_BIND_IFACE:
         Log(Error) << "Unable to bind socket to interface " << this->Iface << "/" 
-		   << this->IfaceID << "." << LogEnd;
+                   << this->IfaceID << "." << LogEnd;
         break;
     case LOWLEVEL_ERROR_BIND_FAILED:
         Log(Error) << "Unable to bind socket (iface=" << iface << "/" << ifaceid 
-		   << ", addr=" << addr->getPlain() << ", port=" 
-		   << this->Port << ")." << LogEnd;
+                   << ", addr=" << addr->getPlain() << ", port=" 
+                   << this->Port << ")." << LogEnd;
         break;
     case LOWLEVEL_ERROR_MCAST_HOPS:
         Log(Error) << "Unable to set multicast hops. (iface= " << iface << "/" << ifaceid  
-		   << ", addr=" << *this->Addr << ", port=" << this->Port << ")" << LogEnd;
+                   << ", addr=" << *this->Addr << ", port=" << this->Port << ")" << LogEnd;
         break;
     case LOWLEVEL_ERROR_MCAST_MEMBERSHIP:
         Log(Error) << "Unable to perform multicast group operation." << LogEnd;
@@ -417,7 +415,7 @@ void TIfaceSocket::printError(int error, char * iface, int ifaceid, SPtr<TIPv6Ad
         break;
     }
     if (error_message()) {
-	Log(Error) << "Low-level layer error message: " << error_message() << LogEnd;
+        Log(Error) << "Low-level layer error message: " << error_message() << LogEnd;
     }
 }
 
@@ -430,16 +428,16 @@ void TIfaceSocket::printError(int error, char * iface, int ifaceid, SPtr<TIPv6Ad
 std::ostream & operator <<(std::ostream & strum, TIfaceSocket &x)
 {
     strum << dec 
-	  << "<IfaceSocket"
-	  << " fd=\"" << x.getFD() << "\""
-	  << " port=\"" << x.getPort() << "\""
-	  << " iface=\"" << x.Iface << "\""
-	  << " addr=\"" << *x.Addr << "\"";
+          << "<IfaceSocket"
+          << " fd=\"" << x.getFD() << "\""
+          << " port=\"" << x.getPort() << "\""
+          << " iface=\"" << x.Iface << "\""
+          << " addr=\"" << *x.Addr << "\"";
     if (x.Multicast) 
-	strum << " multicast=\"true\"";
+        strum << " multicast=\"true\"";
     if (x.IfaceOnly)
-	strum << " ifaceonly=\"true\"";
+        strum << " ifaceonly=\"true\"";
     strum << " status=\"" << StateToString(x.Status)
-	  << "\"" << " />" << endl;
+          << "\"" << " />" << endl;
     return strum;
 }

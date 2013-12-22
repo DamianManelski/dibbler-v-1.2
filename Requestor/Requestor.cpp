@@ -2,7 +2,6 @@
  * Dibbler - a portable DHCPv6
  *
  * author: Tomasz Mrugalski <thomson@klub.com.pl>
- * help desk: Asia Czerniak
  *
  * Released under GNU GPL v2 licence
  *
@@ -25,7 +24,6 @@
 
 using namespace std;
 
-
 void printHelp()
 {
     cout << "Usage:" << endl
@@ -35,9 +33,8 @@ void printHelp()
      //<< "-bulk ADDR - query about link-address, e.g. -bulk 2000::43" << endl
      << "To send bulk (multiple) query:"<< endl
      << "- bulk -dstaddr -m ADDRESS [] CLIENT_ID [] LINK_ADDRESS [] RELAY_ID [] REMOTE_ID [], e.g. -bulk -m 2000::43 00:11:22:33:44:55:66:77:88 00:11:22:33:88:44:55:66:77"<< endl
-        << "-timeout 10 - query timeout, specified in seconds" << endl
-        << "-dstaddr 2000::1 - destination address (by default it is ff02::1:2)" << endl;
-
+         << "-timeout 10 - query timeout, specified in seconds" << endl
+         << "-dstaddr 2000::1 - destination address (by default it is ff02::1:2)" << endl;
 }
 
 int parseMultiQueryCmd(char * inputString ) {
@@ -75,11 +72,8 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
     char * relayId =0;
     int enterpriseNumber =0, tmpOptCode=0, requestCount=0;
     bool multiplyQ = false;
-
-
     int timeout  = 60; // default timeout value
     for (int i=1; i<=argc; i++) {
-        //Log(Info) << "i: \t" << i << "\t argv: " << argv[i] << endl;
         if ((!strncmp(argv[i],"-addr", 5)) && (strlen(argv[i])==5)) {
             if (argc==i) {
                 Log(Error) << "Unable to parse command-line. -addr used, but actual address is missing." << LogEnd;
@@ -233,16 +227,7 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
         Log(Error) << "Please use -h for help." << LogEnd;
         return false;
     }
-/*
-    if (!addr && !duid) {
-        Log(Error) << "Both address and DUID not defined." << LogEnd;
-        return false;
-    }
-    if (addr && duid) {
-        Log(Error) << "Both address and DUID defined." << LogEnd;
-        return false;
-    }
-*/
+
     if (!iface) {
         Log(Error) << "Interface not defined. Please use -i command-line switch." << LogEnd;
         return false;
@@ -279,7 +264,6 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
     }
     return true;
 }
-
 int EmptyBulkQueue(ReqCfgMgr *a ) {
     /* a->addr  = addr;
     a->duid  = duid;
@@ -314,6 +298,7 @@ int EmptyBulkQueue(ReqCfgMgr *a ) {
     }
 
 }
+
 int initWin()
 {
 #ifdef WIN32
@@ -330,29 +315,25 @@ int main(int argc, char *argv[])
 {
     int i=0;
     ReqCfgMgr a;
-    //memset(&a, 0 sizeof(a));
 
     initWin();
 
-    // srandom(time(NULL)); // Linux
-    srand(time(NULL));      // Windows
+    srand(static_cast<unsigned int>(time(NULL))); // Windows
 
     logger::setLogName("Requestor");
         logger::Initialize((char*)REQLOG_FILE);
 
-        cout << DIBBLER_COPYRIGHT1 << " (REQUESTOR)" << endl;
-        cout << DIBBLER_COPYRIGHT2 << endl;
-        cout << DIBBLER_COPYRIGHT3 << endl;
-        cout << DIBBLER_COPYRIGHT4 << endl;
-        cout << endl;
+    cout << DIBBLER_COPYRIGHT1 << " (REQUESTOR)" << endl;
+    cout << DIBBLER_COPYRIGHT2 << endl;
+    cout << DIBBLER_COPYRIGHT3 << endl;
+    cout << DIBBLER_COPYRIGHT4 << endl;
+    cout << endl;
 
     if (!parseCmdLine(&a, argc, argv)) {
-
         Log(Crit) << "Aborted. Invalid command-line parameters or help called." << LogEnd;
         printHelp();
         return -1;
     }
-
 
     TIfaceMgr   * ifaceMgr = new TIfaceMgr(REQIFACEMGR_FILE, true);
     ReqTransMgr * transMgr = new ReqTransMgr(ifaceMgr);
@@ -364,7 +345,6 @@ int main(int argc, char *argv[])
             Log(Crit) << "Aborted. Socket binding failed." << LogEnd;
             return LOWLEVEL_ERROR_BIND_FAILED;
         }
-
 
         if (!transMgr->SendMsg()) {
             Log(Crit) << "Aborted. Message transmission failed." << LogEnd;
@@ -418,7 +398,6 @@ int main(int argc, char *argv[])
 
     return LOWLEVEL_NO_ERROR;
 }
-
 
 
 /* linker workarounds: dummy functions */

@@ -1,12 +1,12 @@
-/*
- * Dibbler - a portable DHCPv6
- *
- * authors: Tomasz Mrugalski <thomson@klub.com.pl>
- *          Marek Senderski <msend@o2.pl>
+/*                                                                           
+ * Dibbler - a portable DHCPv6                                               
+ *                                                                           
+ * authors: Tomasz Mrugalski <thomson@klub.com.pl>                           
+ *          Marek Senderski <msend@o2.pl>                                    
  * changes: Michal Kowalczuk <michal@kowalczuk.eu>
- * changes: Damian Manelski <dm1988air@gmail.com>
- * released under GNU GPL v2 only licence
- *
+ *                                                                           
+ * released under GNU GPL v2 only licence                                
+ *                                                                           
  */
 
 #include "SrvMsgLeaseQueryReply.h"
@@ -18,19 +18,20 @@
 #include "SrvOptIAPrefix.h"
 #include "AddrClient.h"
 #include "SrvCfgMgr.h"
-#include "OptRemoteId.h"
+#include "OptVendorData.h"
 
 using namespace std;
 
 TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
     :TSrvMsg(query->getIface(), query->getAddr(), LEASEQUERY_REPLY_MSG,
-             query->getTransID())
+	     query->getTransID())
 {
   if(!query->Bulk) {
-      if (!answer(query)) {
-        Log(Error) << "LQ: LQ-QUERY response generation failed." << LogEnd;
-      } else {
-        Log(Debug) << "LQ: LQ-QUERY response generation successful." << LogEnd;
+  if (!answer(query)) {
+    Log(Error) << "LQ: LQ-QUERY response generation failed." << LogEnd;
+	IsDone = true;
+  } else {
+    Log(Debug) << "LQ: LQ-QUERY response generation successful." << LogEnd;
       }IsDone = true;
   } else {
       if (!answer(query)) {
@@ -38,16 +39,16 @@ TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
       } else {
         Log(Debug) << "BLQ: LQ-QUERY response generation successful." << LogEnd;
       }
-      IsDone = true;
+    IsDone = false;
   }
 }
 
 
-/**
- *
- *
- * @param queryMsg
- *
+/** 
+ * 
+ * 
+ * @param queryMsg 
+ * 
  * @return true - answer should be sent
  */
 bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
@@ -60,11 +61,9 @@ bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
         Log(Info) << "LQ: Generating new LEASEQUERY-REPLY message." << LogEnd;
     else
         Log(Info) <<"BLQ: Generating new Bulk LEASEQUERY-REPLY message" << LogEnd;
-
-
-
+    
     queryMsg->firstOption();
-    while (opt = queryMsg->getOption()) {
+    while ( opt = queryMsg->getOption()) {
         if(opt->getOptType()== OPTION_LQ_QUERY) {
             subOpt = (Ptr*) queryMsg;
             break;
@@ -111,14 +110,24 @@ bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
         default:
             Options.push_back( new TOptStatusCode(STATUSCODE_UNKNOWNQUERYTYPE, "Invalid Query type.", this) );
             Log(Warning) << "LQ: Invalid query type (" << q->getQueryType() << " received." << LogEnd;
-            return true;
+            send = true;
+            break;
         }
     }
 
+    if (!count) {
+	Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required LQ_QUERY option missing.", this));
+        send = true;
+    }
+
+    // append SERVERID
+    SPtr<TOptDUID> serverID;
+    serverID = new TOptDUID(OPTION_SERVERID, SrvCfgMgr().getDUID(), this);
+    Options.push_back((Ptr*)serverID);
+
     if (send) {
-        // allocate buffer
-        pkt = new char[getSize()];
-        this->send();
+    // allocate buffer
+    this->send();
     }
 
     return true;
@@ -129,25 +138,25 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
     q->firstOption();
     SPtr<TSrvOptIAAddress> addr = 0;
     //SPtr<TIPv6Addr> link = q->getLinkAddr();
-
+    
     while ( opt = q->getOption() ) {
-        if (opt->getOptType() == OPTION_IAADDR)
-            addr = (Ptr*) opt;
+	if (opt->getOptType() == OPTION_IAADDR)
+	    addr = (Ptr*) opt;
     }
     if (!addr) {
-        Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required IAADDR suboption missing.", this));
-        return true;
+	Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required IAADDR suboption missing.", this));
+	return true;
     }
 
     // search for client
     SPtr<TAddrClient> cli = SrvAddrMgr().getClient( addr->getAddr() );
-
+    
     if (!cli) {
-        Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
-        Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this) );
-        return true;
+	Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
+	Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this) );
+	return true;
     }
-
+    
     appendClientData(cli);
     return true;
 }
@@ -157,32 +166,31 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
     SPtr<TOptDUID> duidOpt = 0;
     SPtr<TDUID> duid = 0;
     SPtr<TIPv6Addr> link = q->getLinkAddr();
-
+    
     q->firstOption();
     while ( opt = q->getOption() ) {
-        if (opt->getOptType() == OPTION_CLIENTID) {
-            duidOpt = (Ptr*) opt;
-            duid = duidOpt->getDUID();
-        }
+	if (opt->getOptType() == OPTION_CLIENTID) {
+	    duidOpt = (Ptr*) opt;
+	    duid = duidOpt->getDUID();
+	}
     }
     if (!duid) {
-        Options.push_back( new TOptStatusCode(STATUSCODE_UNSPECFAIL, "You didn't send your ClientID.", this) );
-        return true;
+	Options.push_back( new TOptStatusCode(STATUSCODE_UNSPECFAIL, "You didn't send your ClientID.", this) );
+	return true;
     }
 
     // search for client
     SPtr<TAddrClient> cli = SrvAddrMgr().getClient( duid );
-
+    
     if (!cli) {
-        Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
-        Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this DUID found.", this) );
-        return true;
+	Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
+	Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this DUID found.", this) );
+	return true;
     }
-
+    
     appendClientData(cli);
     return true;
 }
-
 bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg) {
     SPtr<TOpt> opt;
     q->firstOption();
@@ -216,14 +224,14 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
     SPtr<TOpt> opt;
     q->firstOption();
 
-    SPtr<TOptRemoteID> remotePtr = 0;
-    SPtr<TOptRemoteID> remoteId = 0;
+    SPtr<TOptVendorData> remoteId = 0;
     //SPtr<TIPv6Addr> link = q->getLinkAddr();
 
     while ( opt = q->getOption() ) {
-        if (opt->getOptType() == OPTION_REMOTE_ID)
-            remotePtr = (Ptr*) opt;
-            remoteId = remotePtr->getRemoteId();
+        if (opt->getOptType() != OPTION_REMOTE_ID)
+            continue;
+        remoteId = (Ptr*) opt;
+        break;
     }
     if (!remoteId) {
         Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required RemoteId suboption missing.", this));
@@ -263,7 +271,6 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg) {
     /// @todo: Implement query by relay-id
 
-
     SPtr<TOpt> opt;
     SPtr<TOptDUID> relayDuidOpt = 0;
     SPtr<TDUID> duid = 0;
@@ -292,21 +299,19 @@ bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 
     appendClientData(cli);
     return true;
-
 }
-
 
 void TSrvMsgLeaseQueryReply::appendClientData(SPtr<TAddrClient> cli) {
 
     Log(Debug) << "LQ: Appending data for client " << cli->getDUID()->getPlain() << LogEnd;
 
     SPtr<TSrvOptLQClientData> cliData = new TSrvOptLQClientData(this);
-
+    
     SPtr<TAddrIA> ia;
     SPtr<TAddrAddr> addr;
     SPtr<TAddrPrefix> prefix;
 
-    unsigned long nowTs = now();
+    unsigned long nowTs = (uint32_t) time(NULL);
     unsigned long cliTs = cli->getLastTimestamp();
     unsigned long diff = nowTs - cliTs;
 
@@ -315,27 +320,27 @@ void TSrvMsgLeaseQueryReply::appendClientData(SPtr<TAddrClient> cli) {
     // add all assigned addresses
     cli->firstIA();
     while ( ia = cli->getIA() ) {
-        ia->firstAddr();
-        while ( addr=ia->getAddr() ) {
-            unsigned long a = addr->getPref() - diff;
-            unsigned long b = addr->getValid() - diff;
-            cliData->addOption( new TSrvOptIAAddress(addr->get(), a, b, this) );
-        }
+	ia->firstAddr();
+	while ( addr=ia->getAddr() ) {
+	    unsigned long a = addr->getPref() - diff;
+	    unsigned long b = addr->getValid() - diff;
+	    cliData->addOption( new TSrvOptIAAddress(addr->get(), a, b, this) );
+	}
     }
 
     // add all assigned prefixes
     cli->firstPD();
     while ( ia = cli->getPD() ) {
-        ia->firstPrefix();
-        while (prefix = ia->getPrefix()) {
-            cliData->addOption( new TSrvOptIAPrefix( prefix->getPrefix(), prefix->getLength(), prefix->getPref(),
-                                                     prefix->getValid(), this));
-        }
+	ia->firstPrefix();
+	while (prefix = ia->getPrefix()) {
+	    cliData->addOption( new TSrvOptIAPrefix( prefix->getPrefix(), prefix->getLength(), prefix->getPref(),
+						     prefix->getValid(), this));
+	}
     }
 
     cliData->addOption(new TOptDUID(OPTION_CLIENTID, cli->getDUID(), this));
 
-    /// @todo: add all temporary addresses
+    // TODO: add all temporary addresses
 
     // add CLT_TIME
     Log(Debug) << "LQ: Adding CLT_TIME option: " << diff << " second(s)." << LogEnd;
@@ -393,7 +398,6 @@ bool TSrvMsgLeaseQueryReply::validateMsg(SPtr<TSrvMsgLeaseQuery> queryMsg)
     else
         return true;
 }
-
 string TSrvMsgLeaseQueryReply::getName() const {
-    return "LEASEQUERY-REPLY";
+    return "LEASE-QUERY-REPLY";
 }

@@ -9,10 +9,18 @@
  */
 
 #define WIN32_LEAN_AND_MEAN
+
+/* tells stdlib.h to include rand_s - more secure version */
+#define _CRT_RAND_S
 #include <winsock2.h>
+
+/* causes compilation errors on Visual Studio 2008 because of IPAddr type being undefined */
+/* commented out for now */
+/* #include <icmpapi.h> */
 
 #include <Ws2tcpip.h.>
 #include <Ws2spi.h>
+//#include <Windows.h>
 
 #include <iphlpapi.h>
 #include <iptypes.h>
@@ -23,6 +31,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <io.h>
+
 
 #include "Portable.h"
 #include "DHCPConst.h"
@@ -114,7 +123,7 @@ char * getAAAKey(uint32_t SPI, uint32_t *len) {
     if (0 > fd)
         return NULL;
 
-    retval = malloc(st.st_size);
+    retval =  malloc(st.st_size);
     if (!retval)
         return NULL;
 
@@ -254,10 +263,10 @@ extern	struct iface* if_list_get()
 
     	//set interface flags
     	iface->flags=0;
-    	if (adaptaddr->OperStatus==IfOperStatusUp)
-	        iface->flags|=IF_UP|IF_RUNNING|IF_MULTICAST;
+    	if (adaptaddr->OperStatus == IfOperStatusUp)
+	        iface->flags |= IFF_UP|IFF_RUNNING|IFF_MULTICAST;
 	    if (adaptaddr->IfType==IF_TYPE_SOFTWARE_LOOPBACK)
-    	    iface->flags|=IF_LOOPBACK;
+    	    iface->flags |= IFF_LOOPBACK;
 	
     	//go to next returned adapter
     	if (adaptaddr->Next)
@@ -307,11 +316,11 @@ extern int is_addr_tentative(char* ifacename, int iface, char* plainAddr)
     
     free(buffer);
     if (!found)
-        return TENTATIVE_UNKNOWN; /* not found */
+        return ADDRSTATUS_UNKNOWN; /* not found */
     if (found->DadState==IpDadStateDuplicate)
-        return TENTATIVE_YES;     /* tentative */
+        return ADDRSTATUS_YES;     /* tentative */
     else
-        return TENTATIVE_NO;      /* not tentative */
+        return ADDRSTATUS_NO;      /* not tentative */
 }
 extern int ipaddr_add(const char * ifacename, int ifaceid, const char * addr, 
                       unsigned long pref, unsigned long valid, int prefixLen)
@@ -328,8 +337,8 @@ extern int ipaddr_add(const char * ifacename, int ifaceid, const char * addr,
     intptr_t i;
     sprintf(arg5,"interface=\"%s\"", ifacename);
     sprintf(arg6,"address=%s", addr);
-    sprintf(arg7,"validlifetime=%d", valid);
-    sprintf(arg8,"preferredlifetime=%d", pref);
+    sprintf(arg7,"validlifetime=%u", valid);
+    sprintf(arg8,"preferredlifetime=%u", pref);
     // use _P_DETACH to speed things up, (but the tentative detection will surely fail)
     i=_spawnl(_P_WAIT, netshPath, netshPath, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, NULL);
     return i;
@@ -422,6 +431,11 @@ int sock_send(int fd, char * addr, char * buf, int buflen, int port,int iface)
     int i;
     char packaddr[16];
     char ifaceStr[10];
+
+    memset(addrStr,  0, sizeof(addrStr));
+    memset(portStr,  0, sizeof(portStr));
+    memset(packaddr, 0, sizeof(packaddr));
+    memset(ifaceStr, 0, sizeof(ifaceStr));
     
     strcpy(addrStr,addr);
     itoa(port,portStr,10);
@@ -463,7 +477,7 @@ int sock_recv(int fd, char * myPlainAddr, char * peerPlainAddr, char * buf, int 
         return LOWLEVEL_ERROR_UNSPEC;
     } else {
         inet_ntop6(info.sin6_addr.u.Byte,peerPlainAddr);
-        return	readBytes;
+        return        readBytes;
     }
 }
 
@@ -480,7 +494,7 @@ extern int dns_add(const char* ifname, int ifaceid, const char* addrPlain) {
     
     sprintf(arg5,"\"%s\"", ifname);
     sprintf(arg6,"address=%s", addrPlain);
-    i=_spawnl(_P_DETACH,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6,NULL);
+    i=_spawnl(_P_WAIT,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6,NULL);
     if (i == 0) {
         return LOWLEVEL_NO_ERROR;
     } else {
@@ -499,8 +513,11 @@ extern int dns_del(const char* ifname, int ifaceid, const char* addrPlain) {
     char arg6[256]; // address=...
     intptr_t i;
     sprintf(arg5,"\"%s\"", ifname);
-    sprintf(arg6,"address=%s", addrPlain);
-    i=_spawnl(_P_DETACH,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6,NULL);
+    if (addrPlain)
+		sprintf(arg6,"address=%s", addrPlain);
+	else
+		sprintf(arg6,"all");
+    i=_spawnl(_P_WAIT,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6,NULL);
 
     if (i == 0) {
         return LOWLEVEL_NO_ERROR;
@@ -602,11 +619,11 @@ int prefix_add(const char* ifname, int ifindex, const char* prefixPlain, int pre
     
     sprintf(arg5, "%s/%d", prefixPlain, prefixLength);
     sprintf(arg6,"interface=\"%s\"", ifname);
-    sprintf(arg7,"preferredlifetime=%d", prefered);
-    sprintf(arg8,"validlifetime=%d", valid);
+    sprintf(arg7,"preferredlifetime=%u", prefered);
+    sprintf(arg8,"validlifetime=%u", valid);
 
     sprintf(buf, "%s %s %s %s %s %s %s %s %s %s", arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
-    i=_spawnl(_P_DETACH,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10, NULL);
+    i=_spawnl(_P_WAIT,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10, NULL);
 
     if (i==-1) {
         /// @todo: some better error support
@@ -635,7 +652,7 @@ int prefix_del(const char* ifname, int ifindex, const char* prefixPlain, int pre
     
     sprintf(arg5, "%s/%d", prefixPlain, prefixLength);
     sprintf(arg6,"interface=\"%s\"", ifname);
-    i=_spawnl(_P_DETACH,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6, NULL);
+    i=_spawnl(_P_WAIT,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6, NULL);
 
     if (i==-1) {
         /// @todo: some better error support
@@ -655,19 +672,49 @@ void link_state_change_cleanup()
    /// @todo: implement this
 }
 
-int execute(const char *filename, char * argv[], char *env[])
+int execute(const char *filename, const char * argv[], const char *env[])
 {
     intptr_t i;
-	i=_spawnvpe(_P_WAIT, filename, argv, env);
-
-	return i;
+    i=_spawnvpe(_P_WAIT, filename, argv, env);
+    return i;
 }
+
+int get_mac_from_ipv6(const char* iface_name, int ifindex, const char* v6addr,
+                      char* mac, int* mac_len) {
+    /// @todo: Implement MAC reading for Windows
+    return LOWLEVEL_ERROR_NOT_IMPLEMENTED;
+}
+
+/** @brief returns host name of this host
+ *
+ * @param hostname buffer (hostname will be stored here)
+ * @param hostname_len length of the buffer
+ * @return LOWLEVEL_NO_ERROR if successful, appropriate LOWLEVEL_ERROR_* otherwise
+ */
+int get_hostname(char* hostname, int hostname_len) {
+    memset(hostname,0, hostname_len);
+    if (GetComputerNameExA(ComputerNameDnsFullyQualified, hostname, &hostname_len)) {
+        return LOWLEVEL_NO_ERROR;
+    }
+    return LOWLEVEL_ERROR_UNSPEC;
+}
+
+void fill_random(uint8_t* buffer, int len) {
+    unsigned int number;
+    int i = 0;
+
+    for (i=0; i < len; ++i) {
+        rand_s(&number);
+        buffer[i] = (number%256);
+    }
+}
+
 
 extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 
 
     int on = 1,sResult=0;
-
+	int result = 0;
     int error;
     WSADATA wsaData;
     SOCKET Insock = INVALID_SOCKET;
@@ -707,9 +754,9 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
     if (port > 0) {
 
         sprintf(port_char,"%d",port);
-        if( (listenSocket = socket(AF_INET6, SOCK_STREAM,0 )) == INVALID_SOCKET) {
+        if( (Insock = socket(AF_INET6, SOCK_STREAM,0 )) == INVALID_SOCKET) {
             printf("socket failed with error: %ld\n", WSAGetLastError());
-            freeaddrinfo();
+            //freeaddrinfo();
             WSACleanup();
             return LOWLEVEL_ERROR_UNSPEC;
         } else {
@@ -719,25 +766,25 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         sResult=setsockopt(Insock, SOL_SOCKET, SO_REUSEADDR, (char *)&on, sizeof(on) );
         if ( sResult== SOCKET_ERROR) {
             printf("SetSockOpt function failed: %d\n", WSAGetLastError());
-            freeaddrinfo(result);
+            //freeaddrinfo(sResult);
             WSACleanup();
             return LOWLEVEL_ERROR_SOCK_OPTS;
         }
 
-        /* Set the options  to receivce ipv6 traffic */
-        sResult = setsockopt(Insock, IPPROTO_IPV6, IPV6_RECVPKTINFO, &on, sizeof(on));
+        // Set the options  to receivce ipv6 traffic 
+		sResult = setsockopt(Insock, IPPROTO_IPV6, IPV6_PKTINFO, (const char*)&on, sizeof(on));
         if (sResult == SOCKET_ERROR) {
           printf("Unable to set up socket option IPV6_RECVPKTINFO with error %d\n",WSAGetLastError());
-          freeaddrinfo(result);
+          //freeaddrinfo(result);
           WSACleanup();
           return LOWLEVEL_ERROR_SOCK_OPTS;
         }
 
         // set socket as nonblocking
-        sResult = ioctlsocket(Insock, FIONBIO, (char *)&on);
+        sResult = ioctlsocket(Insock, FIONBIO, (u_long *)&on);
         if (sResult == SOCKET_ERROR) {
            printf("Unable to set up socket as nonblocking - ioctlsocket's failure with error %d\n",WSAGetLastError());
-           freeaddrinfo(result);
+           //freeaddrinfo(result);
            WSACleanup();
            return LOWLEVEL_ERROR_SOCK_OPTS;
         }
@@ -748,7 +795,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         FD_ZERO(&master_set);
         FD_SET(Insock,&master_set);
     }
-    /* Open a TCP socket for inbound traffic */
+    // Open a TCP socket for inbound traffic 
 
    // struct sockaddr_in6 bindmeClient;
 
@@ -758,13 +805,8 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         port=547;
         sprintf(port_char,"%d",port);
 
-        /* bind socket to a specified port */
-        /*bzero(&bindmeClient, sizeof(struct sockaddr_in6));
-        bindmeClient.sin6_family = AF_INET6;
-        bindmeClient.sin6_port   = htons(port);
-        bindmeClient.sin6_family = IPPROTO_TCP;
-        tmp = (char*)(&bindmeClient.sin6_addr);
-        inet_pton6(addr, tmp);*/
+        
+        
         //bindmeClient.sin6_addr = addr;
 
         memset(&hints,0,sizeof(hints));
@@ -774,8 +816,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         hints.ai_family   = AF_UNSPEC;
         hints.ai_socktype = SOCK_STREAM;
 
-       /* if ((error = getaddrinfo(hostp->hostname, hostp->port,
-                    &hints, &res)) != 0) */
+       // if ((error = getaddrinfo(hostp->hostname, hostp->port, &hints, &res)) != 0)
 
         printf("\n ### iface: %s(id=%d), addr=%s, port=%d \n", ifacename,ifaceid, addr, port);
 
@@ -788,6 +829,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         }
         //(connect(Insock, (struct sockaddr_in6*)&bindmeClient, sizeof(struct sockaddr_in6)) != 0)
 
+		
         for(rp=res; rp!=NULL;rp->ai_next) {
             Insock = socket(rp->ai_family,rp->ai_socktype,rp->ai_protocol);
             if(Insock==-1) {
@@ -796,7 +838,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
                 printf("\n TCP socket has been created correctly\n " );
             }
             if (connect(Insock, rp->ai_addr, rp->ai_addrlen) != 0) {
-                 Rerror("Unable to connect with DHCP server, connect function failed");
+				 printf("Unable to connect with DHCP server, connect function failed: %d\n", WSAGetLastError());
             } else {
                  result++;
                  break;
@@ -816,8 +858,9 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
     struct sockaddr_in6 bindmeServer;
     if ( port > 0) {
 
-        /* bind socket to a specified port */
-        bzero(&bindmeServer, sizeof(struct sockaddr_in6));
+        // bind socket to a specified port
+        //bzero(&bindmeServer, sizeof(struct sockaddr_in6));
+		memset(&bindmeServer, 0, sizeof(struct sockaddr_in6));
         bindmeServer.sin6_family = AF_INET6;
         bindmeServer.sin6_port   = htons(port);
         tmp = (char*)(&bindmeServer.sin6_addr);
@@ -834,7 +877,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 
         if (result == SOCKET_ERROR) {
             printf("Unable to bind socket: %d\n",WSAGetLastError());
-            freeaddrinfo(result);
+            //freeaddrinfo(result);
             closesocket(Insock);
             WSACleanup();
             return LOWLEVEL_ERROR_BIND_FAILED;
@@ -865,7 +908,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
     return Insock;
 
 
-}
+} 
 
 
 
@@ -876,7 +919,7 @@ extern int getsOpt(int fd) {
     len = sizeof(sockType);
 
     if (result = getsockopt(fd,SOL_SOCKET,SO_TYPE,&sockType,&len) ) {
-        Rerror("Getsockopt function failed");
+        //Rerror("Getsockopt function failed");
         return -1;
     } else {
         sprintf(Message, "Getsockopt OK");
@@ -885,122 +928,113 @@ extern int getsOpt(int fd) {
     return -1;
 }
 
+extern int accept_tcp(int fd, char *peerPlainAddr) {
 
+	struct sockaddr_in6 peerStructure;
+	int fd_new;
 
-extern int accept_tcp (int fd,char * peerPlainAddr) {
+	//bzero(&peerStructure, sizeof(struct sockaddr_in6));
+	memset(&peerStructure, 0, sizeof(&peerStructure));
+	socklen_t peerStructureLen = sizeof(peerStructure);
 
-    struct sockaddr_in6 peerStructure;
+	fd_new = accept(fd, (struct sockaddr_in6 *)&peerStructure, &peerStructureLen);
+	if (fd_new < 0) {
+		//sprintf(Message, "Accept function failed. Cannot create net socket descriptor");
+		//close(fd_new);
 
-    bzero(&peerStructure, sizeof(struct sockaddr_in6));
-    size_t peerStructureLen = sizeof(peerStructure);
+		if (errno != EWOULDBLOCK) {
+			printf("Cannot create net socket descriptor: %d.\n",WSAGetLastError());
+			//Here should be check if client didn't close connection
+			//close(fd_new);
+			return -1;
+		}
 
-    fd_new = accept(fd,(struct sockaddr_in6 *)&peerStructure,peerStructureLen);
-    if (fd_new < 0) {
-        //sprintf(Message, "Accept function failed. Cannot create net socket descriptor");
-        //close(fd_new);
-
-        if (errno !=  WSAEWOULDBLOCK) {
-            printf("Cannot create net socket descriptor.Accept function failed with error %d\n",WSAGetLastError());
-            WSACleanup();
-            //Here should be check if client didn't close connection
-            //close(fd_new);
-            return -1;
-        }
-
-    }
-    /* get source address */
-    inet_ntop6((void*)&peerStructure.sin6_addr, peerPlainAddr);
-    return fd_new;
-
+	}
+	/* get source address */
+	inet_ntop6((void*)&peerStructure.sin6_addr, peerPlainAddr);
+	return fd_new;
 }
 
-extern int getPeerName_ipv6(int fd,struct socketStruct,char * addr) {
+/*
+extern int getPeerName_ipv6(int fd, struct socketStruct, char * addr) {
 
-     addrLength = sizeof(socketStruct.sockaddr_in);
-     if(getpeername(fd, addr, addrLength) < 0) {
-         printf( "Getpeername function failed with error: %ld\nCannot return peername address\n", WSAGetLastError() );
-         closesocket(fd_new);
-         WSACleanup();
-         return 1;
-     } else {
-         return 0;
-     }
+	addrLength = sizeof(socketStruct.sockaddr_in);
+	if (getpeername(fd, addr, addrLength) < 0) {
+		printf("Getpeername function failed with error: %ld\nCannot return peername address\n", WSAGetLastError());
+		closesocket(fd_new);
+		WSACleanup();
+		return 1;
+	}
+	else {
+		return 0;
+	}
 
 }
+*/
+extern int sock_recv_tcp(int fd, char * recvBuffer, int bufLength, int flags) {
 
-extern int sock_recv_tcp(int fd, char * recvBuffer, char *myPlainAddr, char *peerPlainAddr, int bufLength, int flags) {
+	int iResult = 0;
 
-    int iResult;
-    iResult = recv (fd, recvBuffer, bufLength, flags);
-    if (iResult < 0) {
-        printf ("Cannot receive data, receive function socket error %d\n",WSAGetLastError());
-        WSACleanup();
-        return LOWLEVEL_ERROR_UNSPEC;
-    } else {
-        /* get source address */
-        inet_ntop6((void*)&peerAddr.sin6_addr, peerPlainAddr);
-
-        /* get destination address */
-        for(cm = (struct cmsghdr *) CMSG_FIRSTHDR(&msg); cm; cm = (struct cmsghdr *) CMSG_NXTHDR(&msg, cm)){
-        if (cm->cmsg_level != IPPROTO_IPV6 || cm->cmsg_type != IPV6_PKTINFO)
-            continue;
-        pktinfo= (struct in6_pktinfo *) (CMSG_DATA(cm));
-        inet_ntop6((void*)&pktinfo->ipi6_addr, myPlainAddr);
-        }
-        return iResult;
-    }
+	iResult = recv(fd, recvBuffer, bufLength, flags);
+	if (iResult < 0) {
+		printf(Message, "Cannot receive data, receive function socket error: %d", WSAGetLastError());
+		return LOWLEVEL_ERROR_UNSPEC;
+	}
+	else {
+		return iResult;
+	}
 }
 
 
-extern int sock_send_tcp(int fd,char *buf, int buflen, int flags, int port ) {
+extern int sock_send_tcp(int fd, char * addr, char *buf, int buflen, int flags, int port) {
 
-    struct addrinfo hints, *res;
-    int sResult = 0;
-    char cport[10];
+	struct addrinfo hints, *res;
+	int sResult = 0;
+	char cport[10];
 
-    sprintf(cport,"%d",port);
+	sprintf(cport, "%d", port);
 
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = PF_INET6;
-    hints.ai_socktype = SOCK_STREAM;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = PF_INET6;
+	hints.ai_socktype = SOCK_STREAM;
 
 
-    if (getaddrinfo(addr, cport, &hints, &res) < 0) {
-        return -1; /* Error in transmitting */
-    }
+	if (getaddrinfo(addr, cport, &hints, &res) < 0) {
+		return -1; /* Error in transmitting */
+	}
 
-    if (!buflen){
-        buflen=(int)strlen(buf);
-    }
-    sResult = send (fd,buf,buflen,flags);
+	if (!buflen){
+		buflen = (int)strlen(buf);
+	}
+	sResult = send(fd, buf, buflen, flags);
 
-    if (sResult == SOCKET_ERROR)
-    {
-        printf(Message, "Unable to send data (dst addr: %s) with error %d\n", addr,WSAGetLastError());
-        return LOWLEVEL_ERROR_SOCKET;
-    } else {
-        printf("\n %d bytes has been send\n",iResult);
-    }
+	if (sResult == SOCKET_ERROR)
+	{
+		printf(Message, "Unable to send data (dst addr: %s) with error %d\n", addr, WSAGetLastError());
+		return LOWLEVEL_ERROR_SOCKET;
+	}
+	else {
+		printf("\n %d bytes has been send\n", sResult);
+	}
 
-    freeaddrinfo(res);
+	freeaddrinfo(res);
 
-    return sResult;
+	return sResult;
 }
 
-extern int terminate_tcp_connection(int fd,int how) {
+extern int terminate_tcp_connection(int fd, int how) {
 
-    //SD_RECEIVE 0
-    //SD_SEND    1
-    //SD_BOTH    2
+	//SD_RECEIVE 0
+	//SD_SEND    1
+	//SD_BOTH    2
 
-    iResult = shutdown(fd,how);
-    if (iResult == SOCKET_ERROR) {
-        wprintf("shutdown failed with error: %d\n", WSAGetLastError());
-        closesocket(ConnectSocket);
-        WSACleanup();
-        return 1;
-    }
-    return iResult;
+	int iResult = shutdown(fd, how);
+	if (iResult == SOCKET_ERROR) {
+		printf("shutdown failed with error: %d\n", WSAGetLastError());
+		//closesocket(ConnectSocket);
+		WSACleanup();
+		return 1;
+	}
+	return iResult;
 
 }
-

@@ -1,5 +1,6 @@
 #ifndef RELOPTDUID_H
 #define RELOPTDUID_H
+
 #include <OptDUID.h>
 #include <SmartPtr.h>
 
@@ -11,4 +12,4 @@ class TRelOptDUID : public TOptDUID
 
 };
 
-#endif // RELOPTDUID_H
+#endif  RELOPTDUID_H

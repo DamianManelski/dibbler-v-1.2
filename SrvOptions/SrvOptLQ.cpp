@@ -23,9 +23,9 @@ TSrvOptLQ::TSrvOptLQ(char * buf, int bufsize, TMsg* parent)
 
     // @TODO parse
     if (bufsize<17) {
-        Log(Warning) << "Truncated (len=" << bufsize << ", at least 17 required) option OPTION_LQ_QUERY received." << LogEnd;
-        IsValid = false;
-        return;
+	Log(Warning) << "Truncated (len=" << bufsize << ", at least 17 required) option OPTION_LQ_QUERY received." << LogEnd;
+	IsValid = false;
+	return;
     }
     QueryType = (ELeaseQueryType)buf[0];
     Addr = new TIPv6Addr(buf+1);
@@ -138,7 +138,6 @@ TSrvOptLQ::TSrvOptLQ(char *buf, int bufSize, TMsg *parent, int msgType)
     }
    // Log(Debug) << "SubOptCount:" << this->countOption() <<LogEnd;
 }
-
 bool TSrvOptLQ::doDuties() {
     return true;
 }

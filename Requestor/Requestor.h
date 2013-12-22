@@ -11,4 +11,3 @@ class RecivedData {
     RecivedData (char * buf);
 
 };
-

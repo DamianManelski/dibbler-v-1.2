@@ -16,16 +16,12 @@
 TReqOptAddr::TReqOptAddr(int type, SPtr<TIPv6Addr> addr, TMsg * parent)
   :TOptIAAddress(addr, 0x33333333, 0x88888888, parent)
 {
-
-    //use 0x33333333 as preffered lifetime and 0x88888888 as valid lifetime value ?
 }
 
 bool TReqOptAddr::doDuties()
 {
     return true;
 }
-
-
 
 TReqOptDUID::TReqOptDUID(int type, SPtr<TDUID> duid, TMsg* parent)
     :TOptDUID(type, duid, parent)
@@ -37,25 +33,15 @@ bool TReqOptDUID::doDuties()
     return true;
 }
 
-
 TReqOptGeneric::TReqOptGeneric(int optType, char * data, int dataLen, TMsg* parent)
     :TOptGeneric(optType, data, dataLen, parent)
 {
 }
 
-//TReqOptGeneric::TReqOptGeneric(int optType, char * data, int dataLen, TMsg* parent, int remoteId)
-//    :TOptGeneric(optType, data, dataLen, parent)
-//{
-
-//}
-
 bool TReqOptGeneric::doDuties()
 {
     return true;
 }
-
-
-
 bool TReqOptRelayId::doDuties()
 {
     return true;
@@ -63,6 +49,7 @@ bool TReqOptRelayId::doDuties()
 
 
 
+#if 0
 bool TReqOptRemoteId::doDuties()
 {
     return true;
@@ -96,7 +83,8 @@ char *TReqOptRemoteId::storeSelf(char *buf, int queryType, int enterpriseNum)
 }
 
  //TOptVendorSpecInfo(int type, int enterprise, char *data, int dataLen, TMsg* parent);
-TReqOptRemoteId::TReqOptRemoteId(int type, char *remoteId, int enterprise,char * data,  int dataLen, TMsg *parent):TOptVendorSpecInfo(type,  enterprise, data, dataLen, parent) {
+TReqOptRemoteId::TReqOptRemoteId(int type, char *remoteId, int enterprise,char * data,  int dataLen, TMsg *parent)
+ :TOptVendorSpecInfo(type,  enterprise, data, dataLen, parent) {
    this->remoreIdRqOpt=remoteId;
 }
 
@@ -113,6 +101,7 @@ size_t TReqOptRemoteId::getSize()
     }
     return len;
 }
+#endif
 
 TReqOptRelayId::TReqOptRelayId(int type, SPtr<TDUID> duid, TMsg *parent)
     :TOptDUID(type, duid, parent)
@@ -120,4 +109,3 @@ TReqOptRelayId::TReqOptRelayId(int type, SPtr<TDUID> duid, TMsg *parent)
 
 
 }
-

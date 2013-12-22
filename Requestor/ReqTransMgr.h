@@ -17,7 +17,6 @@
 #include "OptVendorSpecInfo.h"
 #include "ReqOpt.h"
 
-
 class ReqTransMgr {
 public:
     ReqTransMgr(TIfaceMgr * ifaceMgr);
