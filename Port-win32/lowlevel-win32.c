@@ -721,12 +721,12 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 
 
     // Initialize Winsock
-    sResult = WSAStartup(MAKEWORD(2,2), &wsaData);
+   /* sResult = WSAStartup(MAKEWORD(2,2), &wsaData);
     if (sResult != 0) {
         sprintf(Message, "WSAStartup faild. Something is wrong?");
         return LOWLEVEL_ERROR_SOCK_OPTS;
     }
-
+	*/
     struct addrinfo *res, *rp;
     struct addrinfo hints;
     fd_set master_set;
@@ -744,16 +744,18 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET6;
     hints.ai_socktype = SOCK_STREAM;
-    hints.ai_protocol = IPPROTO_TCP;
+    hints.ai_protocol = IPPROTO_IPV6;
     hints.ai_flags = AI_PASSIVE;
-    if( (error = getaddrinfo(NULL,  port_char, &hints, &res)) ) {
+
+	sprintf(port_char, "%d", port);
+    if( (error = getaddrinfo(NULL,  (PCSTR)port_char, &hints, &res)) ) {
         sprintf(Message, "getaddrinfo failed. Is IPv6 protocol supported by kernel?");
         return LOWLEVEL_ERROR_GETADDRINFO;
     }
 
     if (port > 0) {
 
-        sprintf(port_char,"%d",port);
+        
         if( (Insock = socket(AF_INET6, SOCK_STREAM,0 )) == INVALID_SOCKET) {
             printf("socket failed with error: %ld\n", WSAGetLastError());
             //freeaddrinfo();
@@ -772,7 +774,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         }
 
         // Set the options  to receivce ipv6 traffic 
-		sResult = setsockopt(Insock, IPPROTO_IPV6, IPV6_PKTINFO, (const char*)&on, sizeof(on));
+		sResult = setsockopt(Insock, IPPROTO_TCP,TCP_NODELAY, (const char*)&on, sizeof(on));
         if (sResult == SOCKET_ERROR) {
           printf("Unable to set up socket option IPV6_RECVPKTINFO with error %d\n",WSAGetLastError());
           //freeaddrinfo(result);
@@ -801,9 +803,9 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 
     //TCP client part
     if (port == 0) {
-
+		char port_char2[6];
         port=547;
-        sprintf(port_char,"%d",port);
+        sprintf(port_char2,"%d",port);
 
         
         
@@ -820,7 +822,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 
         printf("\n ### iface: %s(id=%d), addr=%s, port=%d \n", ifacename,ifaceid, addr, port);
 
-        if( (error = getaddrinfo(addr, port_char, &hints, &res)) ) {
+        if( (error = getaddrinfo(addr, port_char2, &hints, &res)) ) {
             sprintf(Message, "getaddrinfo failed. Is IPv6 protocol supported by kernel?");
             return LOWLEVEL_ERROR_GETADDRINFO;
         } else {
