@@ -79,3 +79,8 @@ tests/Srv/Srv_tests
 *.lai
 *.la
 *.a
+client-CfgMgr.xml
+client-IfaceMgr.xml
+dibbler-*-win32.exe
+Port-win32/Debug32
+Port-win32/Release32
