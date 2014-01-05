@@ -916,18 +916,19 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 
 extern int getsOpt(int fd) {
 
-    int len, sockType, result;
+	int  sockType, result, len;
 
-    len = sizeof(sockType);
-
-    if (result = getsockopt(fd,SOL_SOCKET,SO_TYPE,&sockType,&len) ) {
-        //Rerror("Getsockopt function failed");
-        return -1;
-    } else {
-        sprintf(Message, "Getsockopt OK");
-        return result;
-    }
-    return -1;
+	len = sizeof(sockType);
+	result = getsockopt(fd, SOL_SOCKET, SO_TYPE, &sockType, &len);
+	if (result < 0) {
+		//Rerror("Getsockopt function failed");
+		return result;
+	}
+	else {
+		sprintf(Message, "Getsockopt OK");
+		return sockType;
+	}
+	return 0;
 }
 
 extern int accept_tcp(int fd, char *peerPlainAddr) {
