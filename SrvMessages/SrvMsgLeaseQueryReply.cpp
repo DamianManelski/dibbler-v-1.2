@@ -55,7 +55,7 @@ bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 
     int count = 0;
     SPtr<TOpt> opt;
-    SPtr<TOpt> subOpt;
+    SPtr<TSrvOptLQ> subOpt;
     bool send = false;
     if(!queryMsg->Bulk)
         Log(Info) << "LQ: Generating new LEASEQUERY-REPLY message." << LogEnd;
@@ -64,56 +64,50 @@ bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
     
     queryMsg->firstOption();
     while ( opt = queryMsg->getOption()) {
-        if(opt->getOptType()== OPTION_LQ_QUERY) {
-            subOpt = (Ptr*) queryMsg;
-            break;
-        }
-    }
-    subOpt = queryMsg->getOption(OPTION_LQ_QUERY);
+			
+			//opt->firstOption();
+			subOpt = (Ptr*)opt;
+			if (opt->getOptType() == OPTION_CLIENTID) {
+				count++;
+			}
+			else if (opt->getOptType() == OPTION_LQ_QUERY ) {
 
-    SPtr<TSrvOptLQ> q = (Ptr*) opt;
-    q->getOptType();
-    subOpt->firstOption();
-
-    while (count < subOpt->countOption()+1) {
-
-        count++;
-        subOpt = subOpt->getOption();
-        Log(Info) << "Following subOption has benn found:"<< subOpt->getOptType() <<LogEnd;
-        if (!queryMsg->Bulk &&
-            (subOpt->getOptType() == QUERY_BY_RELAY_ID ||
-             subOpt->getOptType() == QUERY_BY_LINK_ADDRESS ||
-             subOpt->getOptType() == QUERY_BY_REMOTE_ID) ) {
-            Options.push_back( new TOptStatusCode(STATUSCODE_NOTALLOWED,
-                                                  "You tried Bulk Leasequery over UDP. Please use TCP.",
-                                                  this) );
-            Log(Warning) << "LQ: Tried bulk leasequery query type over UDP. Please use TCP instead." << LogEnd;
-            return true;
-        }
-        SPtr<TSrvOptLQ> q = (Ptr*) subOpt;
-        switch (subOpt->getOptType()) {
-        case QUERY_BY_ADDRESS:
-            send = queryByAddress(q, queryMsg);
-            break;
-        case QUERY_BY_CLIENT_ID:
-            send = queryByClientID(q, queryMsg);
-            break;
-        case QUERY_BY_LINK_ADDRESS:
-            send = queryByLinkAddress(q, queryMsg);
-            break;
-        case QUERY_BY_RELAY_ID:
-            send = queryByRelayID(q, queryMsg);
-            break;
-        case QUERY_BY_REMOTE_ID:
-            send = queryByRemoteID(q, queryMsg);
-            break;
-        default:
-            Options.push_back( new TOptStatusCode(STATUSCODE_UNKNOWNQUERYTYPE, "Invalid Query type.", this) );
-            Log(Warning) << "LQ: Invalid query type (" << q->getQueryType() << " received." << LogEnd;
-            send = true;
-            break;
-        }
-    }
+				switch (subOpt->getQueryType()) {
+				case QUERY_BY_ADDRESS:
+					send = queryByAddress(subOpt, queryMsg);
+					count++;
+					break;
+				case QUERY_BY_LINK_ADDRESS:
+					send = queryByLinkAddress(subOpt, queryMsg);
+					count++;
+					break;
+				case QUERY_BY_RELAY_ID:
+					send = queryByRelayID(subOpt, queryMsg);
+					count++;
+					break;
+				case QUERY_BY_REMOTE_ID:
+					send = queryByRemoteID(subOpt, queryMsg);
+					count++;
+					break;
+				
+				default:
+					Options.push_back(new TOptStatusCode(STATUSCODE_UNKNOWNQUERYTYPE, "Invalid Query type.", this));
+					Log(Warning) << "LQ: Invalid query type (" << subOpt->getQueryType() << " received." << LogEnd;
+					send = true;
+					break;
+				}
+				subOpt = 0;
+			}
+	}
+	
+	if (count == 1) {
+		queryMsg->firstOption();
+		opt = queryMsg->getOption();
+		opt->firstOption();
+		subOpt = (Ptr*)opt;
+		send = queryByClientID(subOpt, queryMsg);
+		send = true;
+	}
 
     if (!count) {
 	Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required LQ_QUERY option missing.", this));
@@ -135,10 +129,10 @@ bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 
 bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg) {
     SPtr<TOpt> opt;
-    q->firstOption();
+   
     SPtr<TSrvOptIAAddress> addr = 0;
     //SPtr<TIPv6Addr> link = q->getLinkAddr();
-    
+	q->firstOption();
     while ( opt = q->getOption() ) {
 	if (opt->getOptType() == OPTION_IAADDR)
 	    addr = (Ptr*) opt;

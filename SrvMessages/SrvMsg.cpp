@@ -52,22 +52,48 @@ TSrvMsg::TSrvMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID)
 }
 
 TSrvMsg::TSrvMsg(int iface, SPtr<TIPv6Addr> addr, char *buf,int bufSize, int msgType):
-TMsg(iface, addr, buf, msgType,bufSize)
+TMsg(iface, addr, buf, msgType, bufSize), forceMsgType_(0), physicalIface_(iface)
 {
     setDefaults();
     int pos = 0;
-    SPtr<TOpt> ptr;
+
     if (bufSize < 6 + pos) {
-        Log(Error) << "Message " << MsgType << " truncated. There are " << (bufSize-pos)
+        Log(Error) << "Message " << msgType << " truncated. There are " << (bufSize-pos)
                    << " bytes left to parse. Bytes ignored." << LogEnd;
     } else {
-        //calling bulk contruct
-        ptr = new TSrvOptLQ(buf,bufSize, this, msgType);
 
-        if ( (ptr) && (ptr->isValid()) )
-            Options.push_back( ptr );
-        else
-            Log(Warning) << "BLQ:Option type invalid. Option ignored." << LogEnd;
+		while (pos < bufSize)	{
+			unsigned short code = buf[pos] * 256 + buf[pos + 1];
+			pos += 2;
+			unsigned short length = buf[pos] * 256 + buf[pos + 1];
+			pos += 2;
+
+			if (pos + length>bufSize) {
+				Log(Error) << "Malformed option (type=" << code << ", len=" << length
+					<< ", offset from beginning of DHCPv6 message=" << pos + 4 /* 4=msg-type+trans-id */
+					<< ") received (msgtype=" << MsgType << "). Message dropped." << LogEnd;
+				IsDone = true;
+				return;
+			}
+
+			SPtr<TOpt> ptr;
+			ptr = 0;
+
+			switch (code) {
+			case OPTION_CLIENTID:
+				ptr = new TOptDUID(OPTION_CLIENTID, buf + pos, length, this);
+				break;
+			case OPTION_LQ_QUERY:
+				ptr = new TSrvOptLQ(buf + pos, length, this, msgType);
+				break;
+			}
+			if ((ptr) && (ptr->isValid()))
+				Options.push_back(ptr);
+			else
+				Log(Warning) << "Option type invalid. Option ignored." << LogEnd;
+			pos += length;
+		}
+		
     }
 }
 /**

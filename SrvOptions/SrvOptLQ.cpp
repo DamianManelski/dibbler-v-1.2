@@ -14,6 +14,7 @@
 #include "SrvOptIAAddress.h"
 #include "OptDUID.h"
 #include "Portable.h"
+#include "OptVendorSpecInfo.h"
 
 // --- TSrvOptLQ ---
 TSrvOptLQ::TSrvOptLQ(char * buf, int bufsize, TMsg* parent)
@@ -67,76 +68,63 @@ TSrvOptLQ::TSrvOptLQ(char * buf, int bufsize, TMsg* parent)
 TSrvOptLQ::TSrvOptLQ(char *buf, int bufSize, TMsg *parent, int msgType)
     :TOpt(OPTION_LQ_QUERY, parent)
 {
-    int pos=0, prvOpt=0;
-    unsigned short code;
-    unsigned short length;
+	
+	IsValid = true;
+	int subOptCount = 0;
+	// @TODO parse
+	if (bufSize<17) {
+		Log(Warning) << "Truncated (len=" << bufSize << ", at least 17 required) option OPTION_LQ_QUERY received." << LogEnd;
+		IsValid = false;
+		return;
+	}
+	QueryType = (ELeaseQueryType)buf[0];
+	Addr = new TIPv6Addr(buf + 1);
+	int pos = 17;
 
-    if (bufSize<17) {
-        Log(Warning) << "Truncated (len=" << bufSize << ", at least 17 required) option OPTION_LQ_QUERY received." << LogEnd;
-        IsValid = false;
-        return;
-    }
+	while (pos<bufSize) {
+		if (pos + 6>bufSize) {
+			IsValid = false;
+			Log(Warning) << "Truncated IA_NA option received." << LogEnd;
+			return;
+		}
+		int code = buf[pos] * 256 + buf[pos + 1];
+		pos += 2;
+		int length = buf[pos] * 256 + buf[pos + 1];
+		pos += 2;
 
-    unsigned short tmpl=0;
-    int pos2=0;
-    for(pos2=0;pos2<bufSize;pos2++) {
-        tmpl = buf[pos2];
-        Log(Debug) << "pos"<<pos2<<":"<<tmpl <<LogEnd;
-        tmpl=0;
-    }
-    while (pos<bufSize)	{
+		if (allowOptInOpt(parent->getType(), OPTION_LQ_QUERY, code)) {
+			switch (code) {
+			case OPTION_IAADDR:
+				SubOptions.append(new TSrvOptIAAddress(buf + pos, length, parent));
+				QueryType = QUERY_BY_ADDRESS;
+				subOptCount++;
+				break;
+			case OPTION_REMOTE_ID:
+				SubOptions.append(new TOptVendorSpecInfo(OPTION_REMOTE_ID, buf + pos, length, parent));
+				QueryType = QUERY_BY_REMOTE_ID;
+				subOptCount++;
+				break;
+			case OPTION_RELAY_ID:
+				SubOptions.append(new TOptDUID(OPTION_RELAY_ID, buf + pos, length, parent));
+				QueryType = QUERY_BY_RELAY_ID;
+				subOptCount++;
+				break;
+			default:
+				Log(Warning) << "Not supported option " << code << " received in LQ_QUERY option." << LogEnd;
+			}
+		}
+		else {
+			Log(Warning) << "Illegal option " << code << " received inside LQ_QUERY option." << LogEnd;
+		}
 
-        //unsigned short tmpl;
-        //Log(Debug) << "pos:"<<pos<<tmpl<<LogEnd;
-        code   = buf[pos]*256 + buf[pos+1];
-        pos+=2;
-        length = buf[pos]*256 + buf[pos+1];
-        //Log(Debug) << "pos:"<<pos<<tmpl<<LogEnd;
-        pos+=2;
-        if (pos+length>bufSize) {
-            Log(Error) << "Malformed option (type=" << code << ", len=" << length
-                       << ", offset from beginning of DHCPv6 message." << pos+6 /* 6=msgSize+msgType+trans-id */
-                       << "Message dropped." << LogEnd;
-            return;
-        }
+		pos += length;
+		continue;
+	}
 
-        SPtr<TOpt> ptr;
+	if (!subOptCount){
+		this->QueryType = QUERY_BY_LINK_ADDRESS;
+	}
 
-        if (!allowOptInOptInBulk(msgType,prvOpt,code,pos)) {
-            Log(Warning) <<"Option " << code << " can't be present in message (type="
-                         << msgType <<") directly. Option ignored." << LogEnd;
-            pos+=length;
-            continue;
-        }
-        ptr= 0;
-
-
-        switch (code) {
-        case OPTION_CLIENTID:
-            SubOptions.append( new TOptDUID(OPTION_CLIENTID, buf+pos, length, Parent));
-            prvOpt = code;
-            break;
-        case OPTION_REMOTE_ID:
-            //SubOptions.append(new TOptVendorSpecInfo(code, buf+pos, length, this));
-            break;
-        case OPTION_RELAY_ID:
-            SubOptions.append( new TSrvOptIAAddress(buf+pos, length, parent));
-            break;
-        case OPTION_IAADDR:
-            SubOptions.append( new TSrvOptIAAddress(buf+pos, length, parent));
-            break;
-        case OPTION_LQ_QUERY:
-            SubOptions.append(this);
-            break;
-        default:
-            Log(Warning) << "Option type " << code << " not supported yet." << LogEnd;
-            break;
-        };
-
-
-        pos += length;
-    }
-   // Log(Debug) << "SubOptCount:" << this->countOption() <<LogEnd;
 }
 bool TSrvOptLQ::doDuties() {
     return true;

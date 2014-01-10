@@ -564,6 +564,11 @@ bool TSrvCfgMgr::isClntSupported(SPtr<TSrvMsg> msg) {
                      << "Maybe you are trying to configure clients on cascade relay interface? "
                      << "If that is so, please define separate class on this interface, too." << LogEnd;
     }
+
+	//accept all bulk-leasequery messages:
+	if (msg->Bulk) {
+		return true;
+	}
     return false;
 }
 

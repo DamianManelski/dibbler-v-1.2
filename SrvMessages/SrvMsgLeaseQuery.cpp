@@ -31,11 +31,11 @@ void TSrvMsgLeaseQuery::doDuties() {
 
 bool TSrvMsgLeaseQuery::check() {
     /// @todo: validation
-    if (!getOption(OPTION_CLIENTID)) {
+    /*if (!getOption(OPTION_CLIENTID)) {
 	Log(Warning) << "LQ: Lease Query message does not contain required CLIENT-ID option." << LogEnd;
 	return false;
     }
-
+	*/
     return true;
 }
 unsigned int TSrvMsgLeaseQuery::getBulkSize(char *buf)
