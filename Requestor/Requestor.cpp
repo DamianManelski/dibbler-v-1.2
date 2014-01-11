@@ -243,19 +243,6 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
     a->remoteId = remoteId;
     a->enterpriseNumber = enterpriseNumber;
     a->multiplyQuery = multiplyQ;
-
-
-    Log(Debug) << "Addr:" << a->duid <<LogEnd;
-    Log(Debug) << "Duid:" << a->duid <<LogEnd;
-    Log(Debug) << "Bulk:" <<a->bulk << LogEnd;
-    Log(Debug) << "Iface:" << a->iface << LogEnd;
-    Log(Debug) << "Timeout:"<< a->timeout << LogEnd;
-    Log(Debug) << "dstAddr"<< a->dstaddr <<LogEnd;
-    Log(Debug) << "LinkAddr:"<< a->linkAddr << LogEnd;
-    Log(Debug) << "remoteId:" << a->remoteId <<LogEnd;
-    Log(Debug) << "enterpriseNumber"<<a->enterpriseNumber<< LogEnd;
-    Log(Debug) << "MultipleQuery:"<< a->multiplyQuery<< LogEnd;
-
     if(a->remoteId || a->enterpriseNumber) {
         if(!(a->remoteId && a->enterpriseNumber)) {
             Log(Error) << "Both of RemoteId or EnterpriseNumber should be defined to send RemoteId query" << LogEnd;

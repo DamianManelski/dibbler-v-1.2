@@ -485,7 +485,11 @@ bool ReqTransMgr::WaitForRsp()
     Log(Debug) << "Returned socketID=" << sockFD << LogEnd;
     if (sockFD>0) {
         Log(Info) << "Received " << bufLen << " bytes response." << LogEnd;
-        PrintRsp(buf, bufLen);
+		if (stype == SOCK_STREAM){
+			PrintTcpRsp(buf, bufLen);
+		} else {
+			PrintRsp(buf, bufLen);
+		}
     } else {
         Log(Error) << "Response not received. Timeout or socket error." << LogEnd;
         return false;
