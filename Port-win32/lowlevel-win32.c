@@ -921,11 +921,10 @@ extern int getsOpt(int fd) {
 	len = sizeof(sockType);
 	result = getsockopt(fd, SOL_SOCKET, SO_TYPE, &sockType, &len);
 	if (result < 0) {
-		//Rerror("Getsockopt function failed");
+		printf("Getsockopt function error : %d.\n", WSAGetLastError());
 		return result;
 	}
 	else {
-		sprintf(Message, "Getsockopt OK");
 		return sockType;
 	}
 	return 0;
