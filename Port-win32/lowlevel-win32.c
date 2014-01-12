@@ -871,21 +871,14 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         socklen_t bindmeServerSize;
         bindmeServerSize= sizeof (struct sockaddr_in6);
 
-        printf("\n Socket FD: %d", Insock );
-       // printf("\n Size of struct passed to bind:%d\n",sizeof(struct sockaddr_in6));
-        //printf("\n Size of struct passed to bind:%d",sizeof(struct sockaddr_in6));
         result = bind( Insock,(struct sockaddr_in6 *)&bindmeServer,bindmeServerSize);
-        printf("\n Result:%d \n",result);
-
+       
         if (result == SOCKET_ERROR) {
             printf("Unable to bind socket: %d\n",WSAGetLastError());
             //freeaddrinfo(result);
             closesocket(Insock);
             WSACleanup();
             return LOWLEVEL_ERROR_BIND_FAILED;
-        } else {
-            sprintf(Message, "Socket has been bind succesfully");
-            printf("\n Socket has been bind succesfully \n");
         }
 
         if (connectionNumber > 0)  {
@@ -895,10 +888,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
                  closesocket(Insock);
                  WSACleanup();
                  return LOWLEVEL_ERROR_LISTEN_FAILED;
-             } else {
-                 sprintf(Message,"Listen function has been called correctly");
-                 printf("\n Listen function has been called correctly \n");
-             }
+             } 
         } else {
             sprintf(Message, "Connection number hasn't been specified");
             return LOWLEVEL_ERROR_LISTEN_FAILED;

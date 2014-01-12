@@ -229,12 +229,12 @@ int TIfaceMgr::select(unsigned long time, char *buf,
     stype = getsOpt(sock->getFD());
     if(stype != -1) {
         if (stype==SOCK_DGRAM) {
-    result = sock_recv(sock->getFD(), myPlainAddr, peerPlainAddr, buf, bufsize);
-    char peerAddrPacked[16];
-    char myAddrPacked[16];
-    inet_pton6(peerPlainAddr,peerAddrPacked);
-    inet_pton6(myPlainAddr,myAddrPacked);
-    peer->setAddr(peerAddrPacked);
+			result = sock_recv(sock->getFD(), myPlainAddr, peerPlainAddr, buf, bufsize);
+			char peerAddrPacked[16];
+			char myAddrPacked[16];
+			inet_pton6(peerPlainAddr,peerAddrPacked);
+			inet_pton6(myPlainAddr,myAddrPacked);
+			peer->setAddr(peerAddrPacked);
             #ifndef WIN32
                 // check if we've received data addressed to us. There's problem with sockets binding.
                 // If there are 2 open sockets (one bound to multicast and one to global address),
