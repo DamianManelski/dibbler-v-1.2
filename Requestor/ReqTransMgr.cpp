@@ -352,11 +352,11 @@ bool ReqTransMgr::SendTcpMsg()
             Log(Debug) << "Creating LINK-ADDRESS-based query. Asking for " << CfgMgr->linkAddr << " address." << LogEnd;
             // Link-address based query
             buf[0] = QUERY_BY_LINK_ADDRESS;
-            // buf[1..16] - link address, leave as ::
-            memset(buf+1, 0, 16);
-            bufLen = 17;
+            // buf[1..16] - link address
+			memmove(buf + 1, CfgMgr->linkAddr, 16);
+			bufLen = 17;
         } else {
-            Log(Debug) << "Cannot creating LinkAddr-based query for " << CfgMgr->remoteId << " link address." << "It's not present in the server" <<LogEnd;
+            Log(Debug) << "Cannot creating LinkAddr-based query for " << CfgMgr->linkAddr << " link address." << "It's not present in the server" <<LogEnd;
             return false;
         }
     break;
@@ -414,7 +414,7 @@ bool ReqTransMgr::SendTcpMsg()
 			memset(buf+1, 0, 16);
             bufLen = 17;
 		
-           // SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, CfgMgr->remoteId, (int)strlen(CfgMgr->remoteId), msg);
+           //SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, CfgMgr->remoteId, (int)strlen(CfgMgr->remoteId), msg);
             //optRemoteId->storeSelf(buf+bufLen);
             //bufLen += optRemoteId->getSize();
         } else {
@@ -431,7 +431,7 @@ bool ReqTransMgr::SendTcpMsg()
 
     }
 
-    // is it use as link - layer adress ??
+    
     SPtr<TDUID> clientDuid = new TDUID("00:01:00:01:0e:ec:13:db:00:02:02:02:02:02");
 
     SPtr<TOpt> opt = new TReqOptDUID(OPTION_CLIENTID, clientDuid, msg);
