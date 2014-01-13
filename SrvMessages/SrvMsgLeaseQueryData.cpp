@@ -10,8 +10,8 @@
 
 #include "SrvMsgLeaseQuery.h"
 #include "SrvMsgLeaseQueryData.h"
-#include "SrvOptServerIdentifier.h"
 #include "SrvCfgMgr.h"
+#include "OptDUID.h"
 #include "Logger.h"
 
 TSrvMsgLeaseQueryData::TSrvMsgLeaseQueryData(SPtr<TSrvMsgLeaseQuery> query)
@@ -27,16 +27,20 @@ TSrvMsgLeaseQueryData::TSrvMsgLeaseQueryData(SPtr<TSrvMsgLeaseQuery> query)
     }
     Options.push_back(opt);
 
-    // append SERVER-ID
-    SPtr<TSrvOptServerIdentifier> ptrSrvID;
-    ptrSrvID = new TSrvOptServerIdentifier(SrvCfgMgr().getDUID(), this);
-    Options.push_back((Ptr*)ptrSrvID);
+	// append SERVERID
+	SPtr<TOptDUID> serverID;
+	serverID = new TOptDUID(OPTION_SERVERID, SrvCfgMgr().getDUID(), this);
+	Options.push_back((Ptr*)serverID);
 
     // don't do anything else
     // someone will call appendClientData() on us
     // and then call sendTCP()
 }
 
-string TSrvMsgLeaseQueryData::getName() {
+std::string TSrvMsgLeaseQueryData::getName() const {
     return "LEASE-QUERY-DATA";
 }
+
+TSrvMsgLeaseQueryData::~TSrvMsgLeaseQueryData() {
+}
+

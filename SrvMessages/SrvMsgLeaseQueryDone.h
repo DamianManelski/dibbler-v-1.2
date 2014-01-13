@@ -22,6 +22,9 @@ class TSrvMsgLeaseQueryDone : public TSrvMsg
   public:
     TSrvMsgLeaseQueryDone(SPtr<TSrvMsgLeaseQuery> query);
     std::string getName() const;
+	bool check();
+	unsigned long getTimeout();
+	void doDuties();
     ~TSrvMsgLeaseQueryDone();
 };
 

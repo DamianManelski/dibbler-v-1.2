@@ -511,10 +511,9 @@ void TSrvMsg::send(int dstPort /* = 0 */)
     }
 
     if(!this->Bulk) {
-    SrvIfaceMgr().send(ptrIface->getID(), buf, offset, this->PeerAddr, port);
+		SrvIfaceMgr().send(ptrIface->getID(), buf, offset, this->PeerAddr, port);
     } else {
-        port = DHCPSERVER_PORT;
-        Log(Info) <<"Trying to send Bulk Leasequery reply"<<LogEnd;
+		port = DHCPSERVER_PORT;
         SrvIfaceMgr().sendTcp(ptrIface->getID(),buf,offset,this->PeerAddr,port);
     }
     delete [] buf;

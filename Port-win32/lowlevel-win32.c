@@ -755,7 +755,6 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 
     if (port > 0) {
 
-        
         if( (Insock = socket(AF_INET6, SOCK_STREAM,0 )) == INVALID_SOCKET) {
             printf("socket failed with error: %ld\n", WSAGetLastError());
             //freeaddrinfo();
@@ -851,7 +850,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
             printf("\n Can't connect on any interface with specified host");
             return LOWLEVEL_ERROR_CONNECT_FAILED;
         } else {
-            printf("\n Connected with host");
+           // printf("\n Connected with host");
             return Insock;
         }
     }
@@ -895,10 +894,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         }
 
     }
-
-    printf("\nRETURN SOCK FD:%d\n",Insock);
     return Insock;
-
 
 } 
 
@@ -1004,9 +1000,6 @@ extern int sock_send_tcp(int fd, char * addr, char *buf, int buflen, int flags, 
 	{
 		printf(Message, "Unable to send data (dst addr: %s) with error %d\n", addr, WSAGetLastError());
 		return LOWLEVEL_ERROR_SOCKET;
-	}
-	else {
-		printf("\n %d bytes has been send\n", sResult);
 	}
 
 	freeaddrinfo(res);

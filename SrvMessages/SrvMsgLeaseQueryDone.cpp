@@ -20,7 +20,7 @@ TSrvMsgLeaseQueryDone::TSrvMsgLeaseQueryDone(SPtr<TSrvMsgLeaseQuery> query)
 
 }
 
-#if 0
+
 bool TSrvMsgLeaseQueryDone::check() {
     // this should never happen
     return true;
@@ -35,8 +35,8 @@ unsigned long TSrvMsgLeaseQueryDone::getTimeout() {
 void TSrvMsgLeaseQueryDone::doDuties() {
     IsDone = true;
 }
-#endif
 
-string TSrvMsgLeaseQueryDone::getName() {
+
+std::string TSrvMsgLeaseQueryDone::getName() const {
     return "LEASE-QUERY-DONE";
 }

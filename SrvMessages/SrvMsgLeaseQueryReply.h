@@ -21,6 +21,7 @@
 class TSrvMsgLeaseQueryReply : public TSrvMsg
 {
   public:
+	bool isComplete = false;
     TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query);
 
     bool queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg);
@@ -31,6 +32,7 @@ class TSrvMsgLeaseQueryReply : public TSrvMsg
     void appendClientData(SPtr<TAddrClient> cli);
 
     bool answer(SPtr<TSrvMsgLeaseQuery> query);
+	bool answerBlq(SPtr<TSrvMsgLeaseQuery> query);
     bool check();
     void doDuties();
     bool validateMsg(SPtr<TSrvMsgLeaseQuery> queryMsg);
