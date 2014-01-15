@@ -50,6 +50,7 @@ class TIfaceMgr {
                               TNotifyScriptParams& params);
 
     virtual void closeSockets();
+	virtual void closeTcpSocket();
 
     virtual ~TIfaceMgr();
 

@@ -138,11 +138,13 @@ void TDHCPServer::run()
         if(msg->Bulk) {
             //msg->IsDone=true;
 
-            if(physicalIface->closeTcpConnection())
-                Log(Info) << "Closing OK" << LogEnd;
-            else
-                Log(Info) << "Closing failure" << LogEnd;
-
+			if (physicalIface->closeTcpConnection()){
+				Log(Info) << "Closing OK" << LogEnd;
+				SrvIfaceMgr().closeTcpSocket();
+			}
+			else {
+				Log(Info) << "Closing failure" << LogEnd;
+			}
 
             //TODO: this should to keep TCP session alive to receive more data from requestor
             /*/SPtr<TSrvMsg> ptrMsg;

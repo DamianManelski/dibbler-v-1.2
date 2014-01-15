@@ -527,6 +527,45 @@ void TIfaceMgr::closeSockets() {
     }
 }
 
+/// @brief closes all sockets
+void TIfaceMgr::closeTcpSocket() {
+
+	int sockId, stype, failCount = 0;
+	bool found = false;
+	// tricks with FDS macros
+
+	fd_set fds;
+	fds = *TIfaceSocket::getFDS();
+	SPtr<TIfaceSocket> sock;
+	Log(Debug) << "Closing current TCP socket." << LogEnd;
+
+	while (!found) {
+		sockId = sock->getMaxFD();
+		stype = getsOpt(sockId);
+		if (stype != -1) {
+			if (stype == SOCK_STREAM)
+				found = true;
+		}
+		else {
+			Log(Error) << "Cannot close TCP connection with:" << sockId << LogEnd;
+			failCount++;
+		}
+	}
+
+	//FD_CLR(sockId, &fds);
+	sock->terminate_tcp(sockId, 2);
+	//this->delSocket(sockId);
+	
+	firstIface();
+	while (SPtr<TIfaceIface> iface = getIface()) {
+		iface->firstSocket();
+
+		while (SPtr<TIfaceSocket> socket = iface->getSocket()) {
+			if(socket->getFD() == sockId)
+				iface->delSocket(sockId);
+		}
+	}
+}
 // --------------------------------------------------------------------
 // --- operators ------------------------------------------------------
 // --------------------------------------------------------------------

@@ -143,7 +143,7 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 	}
 
 
-	if (isComplete) {
+	if (!isComplete) {
 		SPtr<TSrvMsgLeaseQueryData> lqData;
 		while (!lqData->isComplete) {
 			lqData = new TSrvMsgLeaseQueryData(queryMsg);

@@ -394,9 +394,7 @@ void TSrvTransMgr::relayMsg(SPtr<TSrvMsg> msg)
             }
             Log(Debug) << "BLQ: Bulk LeaseQuery received, preparing RQ_REPLY" << LogEnd;
             SPtr<TSrvMsgLeaseQuery> lq = (Ptr*) msg;
-            a = new TSrvMsgLeaseQueryReply(lq);
-            //TSrvMsgLeaseQuery(int iface, SPtr<TIPv6Addr> addr, char* buf,
-            //                  int bufSize,int MsgType, bool tcp = false);
+			SPtr<TSrvMsgLeaseQueryReply> a = new TSrvMsgLeaseQueryReply(lq);
             break;
         }
     }

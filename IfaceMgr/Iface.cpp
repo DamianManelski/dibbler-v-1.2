@@ -323,10 +323,9 @@ bool TIfaceIface::closeTcpConnection()
 
     fd_set fds;
     fds = *TIfaceSocket::getFDS();
-
-
-    SPtr<TIfaceSocket> sock;
-
+	SPtr<TIfaceSocket> sock;
+   
+	/*
     while (!found) {
         sockId = sock->getMaxFD();
         stype = getsOpt(sockId);
@@ -346,9 +345,10 @@ bool TIfaceIface::closeTcpConnection()
         return false;
     else
         return true;
-
+	*/
    // Log(Debug) << "MAX FD after colse and del:" << sock->getMaxFD() << LogEnd;
    // Log(Debug) << "Binded socket OLD:" << this->getSocketByFD(5) << LogEnd;
+	return true;
 }
 #if 0
 /*
