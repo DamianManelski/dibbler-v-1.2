@@ -23,31 +23,6 @@ bool TReqOptAddr::doDuties()
     return true;
 }
 
-TReqOptDUID::TReqOptDUID(int type, SPtr<TDUID> duid, TMsg* parent)
-    :TOptDUID(type, duid, parent)
-{
-}
-
-bool TReqOptDUID::doDuties()
-{
-    return true;
-}
-
-TReqOptGeneric::TReqOptGeneric(int optType, char * data, int dataLen, TMsg* parent)
-    :TOptGeneric(optType, data, dataLen, parent)
-{
-}
-
-bool TReqOptGeneric::doDuties()
-{
-    return true;
-}
-bool TReqOptRelayId::doDuties()
-{
-    return true;
-}
-
-
 
 #if 0
 bool TReqOptRemoteId::doDuties()
@@ -103,9 +78,3 @@ size_t TReqOptRemoteId::getSize()
 }
 #endif
 
-TReqOptRelayId::TReqOptRelayId(int type, SPtr<TDUID> duid, TMsg *parent)
-    :TOptDUID(type, duid, parent)
-{
-
-
-}

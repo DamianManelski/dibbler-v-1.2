@@ -138,14 +138,39 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                             if (argc == i) {
                                 Log(Error) << "Unable to parse command-line. -bulk used, but actual relay is missing." << LogEnd;
                                 return false;
-                            }requestCount++;
+							}i++;							
+							if ((!strncmp(argv[i], "-linkAddr", 9)) && (strlen(argv[i]) == 9)) {
+								if (argc == i) {
+									Log(Error) << "Unable to parse command line. Link address option specified without value of it" << LogEnd;
+									return false;
+								}
+								linkAddr = argv[++i];
+								
+								continue;
+							}
+							
+							
+							requestCount++;
                             break;
                         case QUERY_BY_REMOTE_ID:
                             remoteId = argv[++i];
                             if (argc == i) {
                                 Log(Error) << "Unable to parse command-line. -bulk used, but actual remoteId is missing." << LogEnd;
                                 return false;
-                            }requestCount++;
+							} i++;
+							if ((!strncmp(argv[i], "-enterpriseNumber", 17)) && (strlen(argv[i]) == 17)) {
+								if (argc == i) {
+									Log(Error) << "Unable to parse command-line. -enterpriseNumber used, but actual address is missing." << LogEnd;
+									return false;
+								}
+								enterpriseNumber = atoi(argv[++i]);
+								if (enterpriseNumber == 0 || enterpriseNumber > 43109) {
+									Log(Error) << "Enterpise number doesn't define in IANA database, type another one form 1 to 43109" << LogEnd;
+									return false;
+								}
+								continue;
+							}
+							requestCount++;
                             break;
 
                          default:
@@ -210,14 +235,7 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
             continue;
         }
 
-        if ((!strncmp(argv[i],"-enterpriseNumber", 17)) && (strlen(argv[i])==17)) {
-            if (argc==i) {
-                Log(Error) << "Unable to parse command-line. -enterpriseNumber used, but actual address is missing." << LogEnd;
-                return false;
-            }
-            enterpriseNumber = atoi(argv[++i]);
-            continue;
-        }
+        
         if ((!strncmp(argv[i], "--help", 6)&&(strlen(argv[i])==6)) || (!strncmp(argv[i], "-h", 2)&&(strlen(argv[i])==2)) || (!strncmp(argv[i], "/help", 5)&&(strlen(argv[i])==5))||
                 (!strncmp(argv[i], "-?", 2)&&(strlen(argv[i])==2)) || (!strncmp(argv[i], "/?",2)&&(strlen(argv[i])==2)) ) {
             return false;

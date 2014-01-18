@@ -157,7 +157,7 @@ bool ReqTransMgr::SendMsg()
         bufLen = 17;
 
         SPtr<TDUID> duid = new TDUID(CfgMgr->duid);
-        SPtr<TReqOptDUID>  optDuid = new TReqOptDUID(OPTION_CLIENTID, duid, msg);
+        SPtr<TOptDUID>  optDuid = new TOptDUID(OPTION_CLIENTID, duid, msg);
         optDuid->storeSelf(buf+bufLen);
         bufLen += optDuid->getSize();
     } else {
@@ -176,10 +176,10 @@ bool ReqTransMgr::SendMsg()
     }
 
     SPtr<TDUID> clientDuid = new TDUID("00:01:00:01:0e:ec:13:db:00:02:02:02:02:02");
-    SPtr<TOpt> opt = new TReqOptDUID(OPTION_CLIENTID, clientDuid, msg);
+    SPtr<TOpt> opt = new TOptDUID(OPTION_CLIENTID, clientDuid, msg);
     msg->addOption(opt);
 
-    opt = new TReqOptGeneric(OPTION_LQ_QUERY, buf, bufLen, msg);
+    opt = new TOptGeneric(OPTION_LQ_QUERY, buf, bufLen, msg);
     msg->addOption(opt);
     
     char msgbuf[1024];
@@ -373,7 +373,7 @@ bool ReqTransMgr::SendTcpMsg()
 
             // add new OPTION_CLIENT_ID option
             SPtr<TDUID> duid = new TDUID(CfgMgr->duid);
-            SPtr<TReqOptDUID>  optDuid = new TReqOptDUID(OPTION_CLIENTID, duid, msg);
+            SPtr<TOptDUID>  optDuid = new TOptDUID(OPTION_CLIENTID, duid, msg);
             optDuid->storeSelf(buf+bufLen);
             bufLen += optDuid->getSize();
 
@@ -388,14 +388,20 @@ bool ReqTransMgr::SendTcpMsg()
             Log(Debug) << "Creating RelayId-based query. Asking for " << CfgMgr->relayId << " RelayId." << LogEnd;
             // RelayId-based query
             buf[0] = QUERY_BY_RELAY_ID;
-            // buf[1..16] - link address, leave as ::
-            //memset(buf+1, 16, 0);
-			memset(buf+1, 0, 16);
+
+            //if link address is specified then server will search all bindins on it, otherway no all available address
+			if (CfgMgr->linkAddr){
+				Log(Debug) << "Relay-id query created with specified link address:" << CfgMgr->linkAddr <<LogEnd;
+				memmove(buf + 1, CfgMgr->linkAddr, 16);
+			}
+			else {
+				memset(buf + 1, 0, 16);
+			}
             bufLen = 17;
 
             // add new OPTION_RELAY_ID option
             SPtr<TDUID> duid = new TDUID(CfgMgr->duid);
-            SPtr<TReqOptRelayId>  optRelayId = new TReqOptRelayId(OPTION_RELAY_ID, duid, msg);//bufLen=optLen ?
+            SPtr<TOptDUID>  optRelayId = new TOptDUID(OPTION_RELAY_ID, duid, msg);//bufLen=optLen ?
             optRelayId->storeSelf(buf+bufLen);
             bufLen += optRelayId->getSize();
         } else {
@@ -414,9 +420,9 @@ bool ReqTransMgr::SendTcpMsg()
 			memset(buf+1, 0, 16);
             bufLen = 17;
 		
-           //SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, CfgMgr->remoteId, (int)strlen(CfgMgr->remoteId), msg);
-            //optRemoteId->storeSelf(buf+bufLen);
-            //bufLen += optRemoteId->getSize();
+            SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, CfgMgr->remoteId, (int)strlen(CfgMgr->remoteId), msg);
+            optRemoteId->storeSelf(buf+bufLen);
+            bufLen += optRemoteId->getSize();
         } else {
             if(!CfgMgr->remoteId) {
                 Log(Debug) << "Cannot creating RemoteId-based query for " << CfgMgr->remoteId << " remote-id." << "It's not present in the server/requestor" <<LogEnd;
@@ -434,10 +440,10 @@ bool ReqTransMgr::SendTcpMsg()
     
     SPtr<TDUID> clientDuid = new TDUID("00:01:00:01:0e:ec:13:db:00:02:02:02:02:02");
 
-    SPtr<TOpt> opt = new TReqOptDUID(OPTION_CLIENTID, clientDuid, msg);
+    SPtr<TOpt> opt = new TOptDUID(OPTION_CLIENTID, clientDuid, msg);
     msg->addOption(opt);
 
-    opt = new TReqOptGeneric(OPTION_LQ_QUERY, buf, bufLen, msg);
+    opt = new TOptGeneric(OPTION_LQ_QUERY, buf, bufLen, msg);
     msg->addOption(opt);
 
     char msgbuf[1024];

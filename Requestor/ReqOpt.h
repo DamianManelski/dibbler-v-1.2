@@ -30,21 +30,7 @@ protected:
     bool doDuties();
 };
 
-class TReqOptDUID : public TOptDUID
-{
-public:
-    TReqOptDUID(int type, SPtr<TDUID> duid, TMsg* parent);
-protected:
-    bool doDuties();
-};
 
-class TReqOptGeneric : public TOptGeneric
-{
-public:
-    TReqOptGeneric(int optType, char * data, int dataLen, TMsg* parent);
-protected:
-    bool doDuties();
-};
 
 #if 0
 class TReqOptRemoteId : public TOptVendorSpecInfo
@@ -58,17 +44,5 @@ protected:
     char * remoreIdRqOpt;
 };
 #endif
-class TReqOptRelayId : public TOptDUID
-{
-    public:
-        //TReqOptRelayId(int type, SPtr<TDUID> duid, TMsg* parent);
-        TReqOptRelayId(int type,SPtr<TDUID> duid,TMsg* parent);
-       //int getSize();
-
-        //SPtr<TDUID> getRelayDUID();
-        //char * storeSelf(char *buf);
-    protected:
-        bool doDuties();
-};
 
 #endif
