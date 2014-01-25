@@ -165,7 +165,7 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
     SPtr<TOpt> opt;
    
     SPtr<TSrvOptIAAddress> addr = 0;
-    //SPtr<TIPv6Addr> link = q->getLinkAddr();
+    SPtr<TIPv6Addr> link = q->getLinkAddr();
 	q->firstOption();
     while ( opt = q->getOption() ) {
 	if (opt->getOptType() == OPTION_IAADDR)
@@ -176,17 +176,37 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		isComplete = true;
 		return true;
     }
+	
+	
+	// search for client
+	if (this->Bulk){
+		SPtr<TAddrClient> cli;
+		this->getAllLinkAddrBindings(addr->getAddr());
+		
+		if (!this->blqClntsLst.count()) {
+			Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+			return true;
+		}
+		else {
+			blqClntsLst.first();
+			while (cli==blqClntsLst.get()){
+				appendClientData(cli);
+			}
+		}
+	} else {
 
-    // search for client
-    SPtr<TAddrClient> cli = SrvAddrMgr().getClient( addr->getAddr() );
-    
-    if (!cli) {
-		Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
-		Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this) );
-		return true;
-    }
-    
-    appendClientData(cli);
+		SPtr<TAddrClient> cli;
+		cli = SrvAddrMgr().getClient(addr->getAddr());
+		if (!cli) {
+			Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+			return true;
+		}
+
+		appendClientData(cli);
+	}
+
     return true;
 }
 
@@ -209,24 +229,44 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		return true;
     }
 
-    // search for client
-    SPtr<TAddrClient> cli = SrvAddrMgr().getClient( duid );
-    
-    if (!cli) {
-		Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
-		Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this DUID found.", this) );
-		isComplete = true;
-		return true;
-    }
-    
-    appendClientData(cli);
+	// search for client
+	if (this->Bulk) {
+		SPtr<TAddrClient> cli;
+		this->getAllDUIDBindings(duid);
+
+		if (!this->blqClntsLst.count()) {
+			Log(Warning) << "BLQ: Assignement for client addr=" << duid->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+			return true;
+		}
+		else {
+			blqClntsLst.first();
+			while (cli == blqClntsLst.get()){
+				appendClientData(cli);
+			}
+		}
+	}
+	else {
+
+		// search for client
+		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(duid);
+
+		if (!cli) {
+			Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this DUID found.", this));
+			isComplete = true;
+			return true;
+		}
+
+		appendClientData(cli);
+	}
     return true;
 }
 bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg) {
     SPtr<TOpt> opt;
-    q->firstOption();
-    //SPtr<TSrvOptIAAddress> addr = 0;
-    SPtr<TIPv6Addr> link = q->getLinkAddr();
+	q->firstOption();
+    SPtr<TSrvOptIAAddress> addr = 0;
+    SPtr<TIPv6Addr> link= q->getLinkAddr();
 
  
     if (!link) {
@@ -235,17 +275,38 @@ bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgL
 		return true;
     }
 
-    // search for client
-    SPtr<TAddrClient> cli = SrvAddrMgr().getClient(q->getLinkAddr());
+	// search for client
+	if (this->Bulk) {
+		SPtr<TAddrClient> cli;
+		this->getAllLinkAddrBindings(q->getLinkAddr());
 
-    if (!cli) {
-        Log(Warning) << "LQ: Assignement for client link addr=" << link->getPlain() << " not found." << LogEnd;
-        Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this) );
-		isComplete = true;
-		return true;
-    }
+		if (!this->blqClntsLst.count()) {
+			Log(Warning) << "LQ: Assignement for client link addr=" << link->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+			isComplete = true;
+			return true;
+		}
+		else {
+			blqClntsLst.first();
+			while (cli == blqClntsLst.get()){
+				appendClientData(cli);
+			}
+		}
+	}
+	else {
 
-    appendClientData(cli);
+		// search for client
+		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(q->getLinkAddr());
+
+		if (!cli) {
+			Log(Warning) << "LQ: Assignement for client link addr=" << link->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+			isComplete = true;
+			return true;
+		}
+
+		appendClientData(cli);
+	}
     return true;
 }
 
@@ -255,7 +316,7 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
     q->firstOption();
 
     SPtr<TOptVendorData> remoteId = 0;
-    //SPtr<TIPv6Addr> link = q->getLinkAddr();
+    SPtr<TIPv6Addr> link = q->getLinkAddr();
 
     while ( opt = q->getOption() ) {
         if (opt->getOptType() != OPTION_REMOTE_ID)
@@ -297,7 +358,7 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
     // }
     // msg = new TSrvOptLaseQueryDone(queryMsg);
     // msg->sendTCP();
-    return false;
+    
 }
 
 bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg) {
@@ -306,7 +367,7 @@ bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
     SPtr<TOpt> opt;
     SPtr<TOptDUID> relayDuidOpt = 0;
     SPtr<TDUID> duid = 0;
-   // SPtr<TIPv6Addr> link = q->getLinkAddr();
+    SPtr<TIPv6Addr> link = q->getLinkAddr();
 
     q->firstOption();
     while ( opt = q->getOption() ) {
@@ -321,17 +382,50 @@ bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		return true;
     }
 
-    // search for client by duid
-    SPtr<TAddrClient> cli = SrvAddrMgr().getClient( duid );
+	// search for client
+	if (Bulk) {
+		
+		if (!link) {
+			Options.push_back(new TOptStatusCode(STATUSCODE_UNSPECFAIL, "You didn't send your link address.", this));
+			isComplete = true;
+			return true;
+		}
 
-    if (!cli) {
-        Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
-        Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this Relay DUID found.", this) );
-		isComplete = true;
-		return true;
-    }
+		SPtr<TAddrClient> cli;
 
-    appendClientData(cli);
+		if (link->getPlain() == "0000:0000:0000:0000:0000")
+			getAllDUIDBindings(duid);
+		else
+
+
+		if (!blqClntsLst.count()) {
+			Log(Warning) << "BLQ: Assignement for client addr=" << duid->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+			return true;
+		}
+		else {
+
+			blqClntsLst.first();
+			cli == blqClntsLst.get();
+			appendClientData(cli);
+
+			if (blqClntsLst.count() > 1)
+				isComplete = false;
+		}
+	}
+	else {
+		// search for client
+		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(duid);
+
+		if (!cli) {
+			Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this DUID found.", this));
+			isComplete = true;
+			return true;
+		}
+		appendClientData(cli);
+	}
+   
     return true;
 }
 
@@ -384,6 +478,65 @@ void TSrvMsgLeaseQueryReply::appendClientData(SPtr<TAddrClient> cli) {
     Options.push_back((Ptr*)cliData);
 }
 
+void  TSrvMsgLeaseQueryReply::getAllDUIDBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr> linkaddr){
+	
+	SPtr<TAddrClient> ptr, cli;
+	int clntCount = 0, i=0;
+	SrvAddrMgr().firstClient();
+
+	while (cli = SrvAddrMgr().getClient(opt)) {
+		blqClntsLst.first();
+		while (ptr = blqClntsLst.get())
+		{
+			if (!blqClntsLst.count()){
+				blqClntsLst.append(cli);
+				++clntCount;
+			}
+			else {
+				if (*(ptr->getDUID()) == (*opt)){
+					if (linkaddr){
+						SPtr<TIPv6Addr> tmpAddr;
+						tmpAddr = (Ptr*) ptr->getIA();
+						if (tmpAddr->getPlain() == linkaddr->getPlain())
+							blqClntsLst.append(cli);
+					}
+					blqClntsLst.append(cli);
+					++clntCount;
+				}
+			}
+		}
+
+	}
+
+}
+void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
+	
+	SPtr<TAddrClient> ptr, cli;
+	SPtr<TAddrIA> ia;
+	int clntCount = 0, i = 0;
+	SrvAddrMgr().firstClient();
+	while (cli = SrvAddrMgr().getClient(linkaddr)) {
+		blqClntsLst.first();
+		while (ptr = blqClntsLst.get())
+		{
+			if (!blqClntsLst.count()){
+				blqClntsLst.append(cli);
+				++clntCount;
+			}
+			else {
+				ptr->firstIA();
+				while (ia = ptr->getIA()) {
+					if (ia->getAddr(linkaddr))
+						blqClntsLst.append(cli);
+				}
+			}
+		}
+	}
+}
+
+void  TSrvMsgLeaseQueryReply::getAllRemoteIdBindings(SPtr<TDUID> opt){
+
+}
 bool TSrvMsgLeaseQueryReply::check() {
     // this should never happen
     return true;
