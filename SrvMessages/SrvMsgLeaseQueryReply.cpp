@@ -57,6 +57,7 @@ TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
  */
 bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 	//here should be code comes from old leasequery implementation
+	queryMsg->firstOption();
 	return true;
 }
 /**
@@ -189,10 +190,13 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 			return true;
 		}
 		else {
+			//append first match client's binding
 			blqClntsLst.first();
-			while (cli==blqClntsLst.get()){
-				appendClientData(cli);
-			}
+			cli == blqClntsLst.get();
+			appendClientData(cli);
+
+			if (blqClntsLst.count() > 1)
+				isComplete = false;
 		}
 	} else {
 
@@ -240,10 +244,13 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 			return true;
 		}
 		else {
+			//append first match client's binding
 			blqClntsLst.first();
-			while (cli == blqClntsLst.get()){
-				appendClientData(cli);
-			}
+			cli == blqClntsLst.get();
+			appendClientData(cli);
+
+			if (blqClntsLst.count() > 1)
+				isComplete = false;
 		}
 	}
 	else {
@@ -287,10 +294,13 @@ bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgL
 			return true;
 		}
 		else {
+			//append first match client's binding
 			blqClntsLst.first();
-			while (cli == blqClntsLst.get()){
-				appendClientData(cli);
-			}
+			cli == blqClntsLst.get();
+			appendClientData(cli);
+
+			if (blqClntsLst.count() > 1)
+				isComplete = false;
 		}
 	}
 	else {
@@ -330,18 +340,40 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		return true;
     }
 
+	// search for client
+	if (this->Bulk) {
+		SPtr<TAddrClient> cli;
+		this->getAllDUIDBindings(remoteId->getDUID());
 
-    // search for client using existing RemoteId
-    //TODO: how to return bindings via RemoteId by AddrMgr ?
-    SPtr<TAddrClient> cli = SrvAddrMgr().getClient();
-    if (!cli) {
-        Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getPlain() << " not found." << LogEnd;
-        Options.push_back( new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this) );
-		isComplete = true;
-		return true;
-    }
+		if (!this->blqClntsLst.count()) {
+			Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
+			isComplete = true;
+			return true;
+		}
+		else {
+			//append first match client's binding
+			blqClntsLst.first();
+			cli == blqClntsLst.get();
+			appendClientData(cli);
 
-    appendClientData(cli);
+			if (blqClntsLst.count() > 1)
+				isComplete = false;
+		}
+	}
+	else {
+
+		// search for client using existing Remote-DUID
+		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(remoteId->getDUID());
+		if (!cli) {
+			Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
+			isComplete = true;
+			return true;
+		}
+
+		appendClientData(cli);
+	}
     return true;
 
     // algorithm:
