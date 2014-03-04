@@ -372,7 +372,7 @@ bool ReqTransMgr::SendTcpMsg()
             bufLen = 17;
 
             // add new OPTION_CLIENT_ID option
-            SPtr<TDUID> duid = new TDUID(CfgMgr->duid);
+            SPtr<TDUID> duid = new TDUID(CfgMgr->clientId);
             SPtr<TOptDUID>  optDuid = new TOptDUID(OPTION_CLIENTID, duid, msg);
             optDuid->storeSelf(buf+bufLen);
             bufLen += optDuid->getSize();
@@ -400,7 +400,7 @@ bool ReqTransMgr::SendTcpMsg()
             bufLen = 17;
 
             // add new OPTION_RELAY_ID option
-            SPtr<TDUID> duid = new TDUID(CfgMgr->duid);
+            SPtr<TDUID> duid = new TDUID(CfgMgr->relayId);
             SPtr<TOptDUID>  optRelayId = new TOptDUID(OPTION_RELAY_ID, duid, msg);//bufLen=optLen ?
             optRelayId->storeSelf(buf+bufLen);
             bufLen += optRelayId->getSize();
@@ -412,7 +412,7 @@ bool ReqTransMgr::SendTcpMsg()
 
     case QUERY_BY_REMOTE_ID:
         if (CfgMgr->remoteId && CfgMgr->enterpriseNumber) {
-            Log(Debug) << "Creating RemoteId-based query. Asking for " << CfgMgr->remoteId << " RelayId." << LogEnd;
+            Log(Debug) << "Creating RemoteId-based query. Asking for " << CfgMgr->remoteId << " RemoteId and enterprise number:" <<CfgMgr->enterpriseNumber << LogEnd;
             // RelayId-based query
             buf[0] = QUERY_BY_REMOTE_ID;
             // buf[1..16] - link address, leave as ::
@@ -456,11 +456,11 @@ bool ReqTransMgr::SendTcpMsg()
 
     unsigned short tmpl=0;
     int pos=0;
-    for(pos=0;pos<msgbufLen;pos++) {
+    /*for(pos=0;pos<msgbufLen;pos++) {
         tmpl = msgbuf[pos];
         Log(Debug) << "pos"<<pos<<":"<<tmpl <<LogEnd;
         tmpl=0;
-    }
+    }*/
 
     if (this->Socket->send_tcp(msgbuf, msgbufLen, dstAddr, DHCPSERVER_PORT)<0) {
         Log(Error) << "Message transmission failed." << LogEnd;
@@ -544,11 +544,11 @@ bool ReqTransMgr::ParseOpts(int msgType, int recurseLevel, char * buf, int bufLe
     bool print = true;
     unsigned short tmpl=0;
     int pos2=0;
-    for(pos2=0;pos2<bufLen;pos2++) {
+   /* for(pos2=0;pos2<bufLen;pos2++) {
         tmpl = buf[pos2];
         Log(Debug) << "pos"<<pos2<<":"<<tmpl <<LogEnd;
         tmpl=0;
-    }
+    }*/
     while (pos<bufLen) {
 	if (pos+4>bufLen) {
 	    Log(Error) << linePrefix << "Message " << msgType << " truncated. There are " << (bufLen-pos) 

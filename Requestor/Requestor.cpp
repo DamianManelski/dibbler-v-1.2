@@ -70,6 +70,23 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
     char * dstaddr = 0;
     char * remoteId =0;
     char * relayId =0;
+
+
+	a->addr = 0;
+	a->bulk = 0;
+	a->clientId = 0;
+	a->dstaddr = 0;
+	a->duid = 0;
+	a->enterpriseNumber = 0;
+	a->iface = 0;
+	a->linkAddr = 0;
+	a->multiplyQuery = 0;
+	a->relayId = 0;
+	a->remoteId = 0;
+	a->requestCount = 0;
+	a->timeout = 0;
+		
+
     int enterpriseNumber =0, tmpOptCode=0, requestCount=0;
     bool multiplyQ = false;
     int timeout  = 60; // default timeout value
@@ -102,9 +119,9 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                 ++i;
                 while (i < argc) {
 
-                    if ( strlen(argv[i]) < 5 ) {
-                       continue;
-                    }
+                   /* if ( strlen(argv[i]) < 5 ) {
+						break;
+                    }*/
 
                     tmpOptCode = parseMultiQueryCmd(argv[i]);
                     Log( Debug) << "tmpCode" << tmpOptCode << LogEnd;
@@ -145,12 +162,10 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
 									return false;
 								}
 								linkAddr = argv[++i];
-								
+								requestCount++;
 								continue;
 							}
-							
-							
-							requestCount++;
+
                             break;
                         case QUERY_BY_REMOTE_ID:
                             remoteId = argv[++i];
@@ -168,9 +183,10 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
 									Log(Error) << "Enterpise number doesn't define in IANA database, type another one form 1 to 43109" << LogEnd;
 									return false;
 								}
+								requestCount++;
 								continue;
 							}
-							requestCount++;
+							
                             break;
 
                          default:
@@ -252,7 +268,7 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
     }
 
     a->addr  = addr;
-    a->duid  = duid;
+    a->clientId  = duid;
     a->bulk  = bulk;
     a->iface = iface;
     a->timeout= timeout;
@@ -285,14 +301,14 @@ int EmptyBulkQueue(ReqCfgMgr *a ) {
         a->queryType = QUERY_BY_ADDRESS;
        // a->addr = 0;
         return 1;
-    } else if (a->duid) {
+    } else if (a->clientId) {
         a->queryType = QUERY_BY_CLIENT_ID;
         return 1;
-    } else if (a->enterpriseNumber) {
-        a->queryType = QUERY_BY_RELAY_ID;
-        return 1;
-    } else if (a->remoteId) {
+    } else if (a->enterpriseNumber && a->remoteId) {
         a->queryType = QUERY_BY_REMOTE_ID;
+        return 1;
+    } else if (a->relayId) {
+        a->queryType = QUERY_BY_RELAY_ID;
         return 1;
     } else if (a->linkAddr) {
         a->queryType = QUERY_BY_LINK_ADDRESS;
@@ -400,7 +416,7 @@ int main(int argc, char *argv[])
     }
 
     delete transMgr;
-
+	delete ifaceMgr;
     return LOWLEVEL_NO_ERROR;
 }
 
