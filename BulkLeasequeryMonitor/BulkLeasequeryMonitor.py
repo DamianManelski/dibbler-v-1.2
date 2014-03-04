@@ -1,28 +1,56 @@
-import exceptions
+# -*- coding: utf-8 -*-
 import os
 import subprocess
+import datetime
+import codecs
+import getopt
+import BulkTest
+#import exeptions
+from BulkTest import BulkTest
+import sys
+#reload(sys)
+#sys.setdefaultencoding('utf-8')
 
-print('--------Bulk Leasequery Management Tool--------')
-print('-----------------------------------------------')
-print('--------@author: Damian Manelski---------------')
-print('-----------------------------------------------')
+def appPrint():
+    print('\n-----------------------------------------------')
+    print('--------Bulk Leasequery Management Tool--------')
+    print('-----------------------------------------------')
+    print('--------@author: Damian Manelski---------------')
+    print('-----------------------------------------------')
+    print('\n')
+    print('--- 1:query by address')
+    print('--- 2:query by link-address')
+    print('--- 3: query by client-duid')
+    print('--- 4:query by relay-id')
+    print('--- 5:query by remote-id')
+    print('\n')
+
+def main():
+    appPrint()
+
+    queryType = input('Choose a number:')
+    requestorPath = input('\nType absolute path to dibbler-requestor.exe path:')
+    if (requestorPath == "" ):
+        requestorPath = 'C:\\Users\\bulk\\Desktop\\dibbler-windows\\dibbler-v-1.2\\Port-win32\\Debug32\\bin'
+    arguments=""
+    test1 = BulkTest('Just a name',queryType,requestorPath,arguments)
+    test1.displayTestParameters()
+    test1.runTest()
+    
+
+if __name__ == "__main__":
+    main()
 
 
-#Constants definition:
-DIR = 'C:\Users\bulk\Desktop\NajnowszaWersja\dibbler-v-1.2\Port-win32\Debug32\bin'
-APP_NAME='\dibbler-requestor'
-IFACE_NAME = 'Po³¹czenie lokalne 2'
-DST_ADDR='2001:4070:11:300:233::1'
-LINK_ADDR = 'fe80:1459:2ed8:f5eb:fed5'
-DUID = 'fe80:1459:2ed8:f5eb:fed5'
-QUERY_TYPE = 'RELAY_ID'
-#example
-#-i "Po³¹czenie lokalne 2" -dstaddr 2001:4070:11:300:233::1  -bulk -m RELAY_ID fe80:1459:2ed8:f5eb:fed3 -linkAddr fe80:1459:2ed8:f5eb:fed5
 
 
-tmpApp = DIR+APP_NAME
 
 
-result = subprocess.check_output([tmpApp, '-i', IFACE_NAME,'-dstaddr', DST_ADDR, 'bulk', '-m',QUERY_TYPE, DUID,'-linkAddr', LINK_ADDR ])
 
-#subprocess.call(['C:\\Temp\\a b c\\Notepad.exe', 'C:\\test.txt'])
+
+    
+
+
+
+
+
