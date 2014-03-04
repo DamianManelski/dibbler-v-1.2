@@ -79,7 +79,7 @@ class TMsg
 
     // notify scripts stuff
     void* getNotifyScriptParams();
-    bool Bulk=false;
+    bool Bulk;
 
   protected:
     int MsgType;

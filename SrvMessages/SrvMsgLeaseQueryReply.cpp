@@ -192,7 +192,7 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		else {
 			//append first match client's binding
 			blqClntsLst.first();
-			cli == blqClntsLst.get();
+			cli = blqClntsLst.get();
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)
@@ -246,7 +246,7 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		else {
 			//append first match client's binding
 			blqClntsLst.first();
-			cli == blqClntsLst.get();
+			cli = blqClntsLst.get();
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)
@@ -296,7 +296,7 @@ bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgL
 		else {
 			//append first match client's binding
 			blqClntsLst.first();
-			cli == blqClntsLst.get();
+			cli = blqClntsLst.get();
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)
@@ -346,7 +346,8 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		this->getAllDUIDBindings(remoteId->getDUID());
 
 		if (!this->blqClntsLst.count()) {
-			Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
+			Log(Warning) << "LQ: Assignement for client RemoteId not found." << LogEnd;
+			//Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
 			isComplete = true;
 			return true;
@@ -354,7 +355,7 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		else {
 			//append first match client's binding
 			blqClntsLst.first();
-			cli == blqClntsLst.get();
+			cli = blqClntsLst.get();
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)
@@ -438,7 +439,7 @@ bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		else {
 
 			blqClntsLst.first();
-			cli == blqClntsLst.get();
+			cli = blqClntsLst.get();
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)

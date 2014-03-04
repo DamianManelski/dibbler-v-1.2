@@ -293,6 +293,7 @@ SPtr<TSrvMsg> TSrvIfaceMgr::select(unsigned long timeout) {
         {
             Log(Debug) << "[Bulk] Relay_Forward messege coming" << LogEnd;
             ptr = decodeRelayForw(ptrIface, peer, buf, bufsize);
+			ptr->Bulk = true;
             if (!ptr)
                 return 0;
             if (!ptr->validateReplayDetection() ||
@@ -365,8 +366,11 @@ SPtr<TSrvMsg> TSrvIfaceMgr::select(unsigned long timeout) {
         return 0; //NULL
     }
 
-    if (!ptr)
-        return 0;
+	if (!ptr)
+		return 0;
+	else
+		ptr->Bulk = false;
+			
 
 #ifndef MOD_DISABLE_AUTH
     if (!ptr->validateReplayDetection()) {

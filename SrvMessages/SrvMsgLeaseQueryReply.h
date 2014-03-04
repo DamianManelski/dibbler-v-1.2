@@ -21,7 +21,7 @@
 class TSrvMsgLeaseQueryReply : public TSrvMsg
 {
   public:
-	bool isComplete = false;
+	bool isComplete;
     TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query);
 
     bool queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg);

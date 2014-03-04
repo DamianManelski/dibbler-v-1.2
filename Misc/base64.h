@@ -24,8 +24,26 @@
 /* Get size_t. */
 # include <stddef.h>
 
+
+/*#ifndef true
+typedef int bool;
+#define true 1
+#define false 0
+#endif
+
+#ifdef __cplusplus
+typedef enum { false, true } bool;
+#endif*/
+#ifndef __cplusplus
+typedef unsigned int bool;
+const bool false = 0;
+const bool true = 1;
+#endif
+
 /* Get bool. */
-# include <stdbool.h>
+//# include <stdbool.h>
+
+
 
 /* This uses that the expression (n+(k-1))/k means the smallest
    integer >= n/k, i.e., the ceiling of n/k.  */
@@ -61,4 +79,4 @@ extern bool base64_decode_alloc (struct base64_decode_context *ctx,
 }
 #endif
 
-#endif /* BASE64_H */
+#endif  BASE64_H 

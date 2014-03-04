@@ -729,6 +729,8 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
 	*/
     struct addrinfo *res, *rp;
     struct addrinfo hints;
+	struct sockaddr_in6 bindmeServer;
+	socklen_t bindmeServerSize;
     fd_set master_set;
 
     char port_char[6];
@@ -854,9 +856,9 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
             return Insock;
         }
     }
-    result=0;
+    
     //TCP server part
-    struct sockaddr_in6 bindmeServer;
+    
     if ( port > 0) {
 
         // bind socket to a specified port
@@ -867,7 +869,7 @@ extern int sock_add_tcp(char * ifacename,int ifaceid, char * addr, int port) {
         tmp = (char*)(&bindmeServer.sin6_addr);
         inet_pton6(addr, tmp);
 
-        socklen_t bindmeServerSize;
+        
         bindmeServerSize= sizeof (struct sockaddr_in6);
 
         result = bind( Insock,(struct sockaddr_in6 *)&bindmeServer,bindmeServerSize);
@@ -920,10 +922,12 @@ extern int accept_tcp(int fd, char *peerPlainAddr) {
 
 	struct sockaddr_in6 peerStructure;
 	int fd_new;
+	int sResult = 0, on = 1;
+	socklen_t peerStructureLen = sizeof(peerStructure);
 
 	//bzero(&peerStructure, sizeof(struct sockaddr_in6));
 	memset(&peerStructure, 0, sizeof(&peerStructure));
-	socklen_t peerStructureLen = sizeof(peerStructure);
+	
 
 	fd_new = accept(fd, (struct sockaddr_in6 *)&peerStructure, &peerStructureLen);
 	if (fd_new < 0) {
@@ -937,6 +941,25 @@ extern int accept_tcp(int fd, char *peerPlainAddr) {
 			return -1;
 		}
 
+	}
+
+	
+	// Set the options  to receivce ipv6 traffic 
+	sResult = setsockopt(fd_new, IPPROTO_TCP, TCP_NODELAY, (const char*)&on, sizeof(on));
+	if (sResult == SOCKET_ERROR) {
+		printf("Unable to set up socket option IPV6_RECVPKTINFO with error %d\n", WSAGetLastError());
+		//freeaddrinfo(result);
+		WSACleanup();
+		return LOWLEVEL_ERROR_SOCK_OPTS;
+	}
+
+	// set socket as nonblocking
+	sResult = ioctlsocket(fd_new, FIONBIO, (u_long *)&on);
+	if (sResult == SOCKET_ERROR) {
+		printf("Unable to set up socket as nonblocking - ioctlsocket's failure with error %d\n", WSAGetLastError());
+		//freeaddrinfo(result);
+		WSACleanup();
+		return LOWLEVEL_ERROR_SOCK_OPTS;
 	}
 	/* get source address */
 	inet_ntop6((void*)&peerStructure.sin6_addr, peerPlainAddr);
@@ -965,7 +988,7 @@ extern int sock_recv_tcp(int fd, char * recvBuffer, int bufLength, int flags) {
 
 	iResult = recv(fd, recvBuffer, bufLength, flags);
 	if (iResult < 0) {
-		printf(Message, "Cannot receive data, receive function socket error: %d", WSAGetLastError());
+		printf("Cannot receive data, receive function socket error: %d", WSAGetLastError());
 		return LOWLEVEL_ERROR_UNSPEC;
 	}
 	else {
@@ -998,7 +1021,7 @@ extern int sock_send_tcp(int fd, char * addr, char *buf, int buflen, int flags, 
 
 	if (sResult == SOCKET_ERROR)
 	{
-		printf(Message, "Unable to send data (dst addr: %s) with error %d\n", addr, WSAGetLastError());
+		printf( "Unable to send data (dst addr: %s) with error %d\n", addr, WSAGetLastError());
 		return LOWLEVEL_ERROR_SOCKET;
 	}
 
