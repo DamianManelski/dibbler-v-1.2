@@ -30,8 +30,8 @@ class TMsg
 {
   public:
     // Used to create TMsg object (normal way)
-    TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType);
-    TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID);
+    TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType,bool isBulk=false);
+    TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID,bool  isBulk = false);
 
     // used to create TMsg object based on received char[] data
     TMsg(int iface, SPtr<TIPv6Addr> addr, char* &buf, int &bufSize);

@@ -26,10 +26,10 @@ using namespace std;
 
 TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
     :TSrvMsg(query->getIface(), query->getAddr(), LEASEQUERY_REPLY_MSG,
-	     query->getTransID())
+	     query->getTransID(),query->Bulk)
 {
 	
-	if(!query->Bulk) {
+	if(!this->Bulk) {
 		if (!answer(query)) {
 			Log(Error) << "LQ-QUERY response generation failed." << LogEnd;
 			IsDone = true;
@@ -37,7 +37,6 @@ TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
 			Log(Debug) << "LQ-QUERY response generation successful." << LogEnd;
 		}IsDone = true;
 	} else {
-		this->Bulk = true;
 		if (!answerBlq(query)) {
 			Log(Error) << "Bulk LQ-QUERY response generation failed." << LogEnd;
 		} else {

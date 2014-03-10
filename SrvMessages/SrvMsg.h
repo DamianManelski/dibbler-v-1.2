@@ -40,7 +40,7 @@ public:
     };
 
     TSrvMsg(int iface,  SPtr<TIPv6Addr> addr, char* buf,  int bufSize);
-    TSrvMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID);
+    TSrvMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID,bool isBulk=false);
 
     //following constructor calls for tcp messages
     TSrvMsg(int iface, SPtr<TIPv6Addr> addr,char * buf,int bufSize,int msgType);

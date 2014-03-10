@@ -45,8 +45,8 @@ using namespace std;
  * @param msgType
  * @param transID
  */
-TSrvMsg::TSrvMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID)
-    :TMsg(iface, addr, msgType, transID), FirstTimeStamp_((uint32_t)time(NULL)),
+TSrvMsg::TSrvMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID,bool isBulk)
+    :TMsg(iface, addr, msgType, transID, isBulk), FirstTimeStamp_((uint32_t)time(NULL)),
      MRT_(0), forceMsgType_(0), physicalIface_(iface)
 {
 }

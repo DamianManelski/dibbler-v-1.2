@@ -33,11 +33,13 @@ TMsg::TMsg(int iface, SPtr<TIPv6Addr> addr, char* &buf, int &bufSize)
     unsigned char * buf2 = (unsigned char *)(buf+1);
     this->TransID= ((long)buf2[0])<<16 | ((long)buf2[1])<<8 | (long)buf2[2];
     buf+=4; bufSize-=4;
+	this->Bulk = false;
 }
 
-TMsg::TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType)
+TMsg::TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType,bool isBulk)
     :NotifyScripts(NULL)
 {
+	this->Bulk = isBulk;
     long tmp = rand() % (255*255*255);
     setAttribs(iface,addr,msgType,tmp);
     if (msgType == LEASEQUERY_MSG) {
@@ -45,9 +47,10 @@ TMsg::TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType)
     }
 }
 
-TMsg::TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType,  long transID)
+TMsg::TMsg(int iface, SPtr<TIPv6Addr> addr, int msgType,  long transID,bool isBulk)
     :NotifyScripts(NULL)
 {
+	this->Bulk = isBulk;
     setAttribs(iface,addr,msgType,transID);
 }
 TMsg::TMsg(int iface, SPtr<TIPv6Addr> addr, char * &buf, int msgType, int  &bufSize)

@@ -309,7 +309,12 @@ void TSrvTransMgr::relayMsg(SPtr<TSrvMsg> msg)
         if (answ->getTransID()==msg->getTransID() && msg->getType() != RELEASE_MSG ) {
             Log(Cont) << " Old reply with transID=" << hex << msg->getTransID()
                       << dec << " found. Sending old reply." << LogEnd;
-            answ->send();
+			if (msg->Bulk)
+				answ->Bulk = true;
+			else
+				answ->Bulk = false;
+
+			answ->send();
             return;
         }
     }
