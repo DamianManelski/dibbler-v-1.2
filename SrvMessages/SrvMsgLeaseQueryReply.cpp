@@ -340,40 +340,42 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
     }
 
 	// search for client
-	if (this->Bulk) {
-		SPtr<TAddrClient> cli;
-		this->getAllDUIDBindings(remoteId->getDUID());
+	
+	SPtr<TAddrClient> cli;
 
-		if (!this->blqClntsLst.count()) {
-			Log(Warning) << "LQ: Assignement for client RemoteId not found." << LogEnd;
-			//Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
-			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
-			isComplete = true;
-			return true;
-		}
-		else {
-			//append first match client's binding
-			blqClntsLst.first();
-			cli = blqClntsLst.get();
-			appendClientData(cli);
+		
+	SPtr<TIPv6Addr> peer;
+	if (queryMsg) {
+		remoteId = queryMsg->getRemoteID();
+		Log(Debug) << "Checking exceptions database for remote id: " << remoteId->getPlain() << LogEnd;
+	}
 
-			if (blqClntsLst.count() > 1)
-				isComplete = false;
-		}
+	if (remoteId) {
+		getAllClientExceptionByRemoteId(remoteId);
+	} else {
+		Log(Error) << "remoteId or link addrres not specified" << LogEnd;
+		return false;
+	}
+
+	if (!blqClntAddrLst.count()) {
+		Log(Warning) << "LQ: Assignement for client RemoteId not found." << LogEnd;
+		//Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
+		Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
+		isComplete = true;
+		return true;
 	}
 	else {
-
-		// search for client using existing Remote-DUID
-		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(remoteId->getDUID());
-		if (!cli) {
-			Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
-			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
-			isComplete = true;
-			return true;
-		}
-
+		//append first match client's binding
+		blqClntsLst.first();
+		cli = blqClntsLst.get();
+		SPtr<TIPv6Addr> d = blqClntAddrLst.get();
+		
 		appendClientData(cli);
+
+		if (blqClntsLst.count() > 1)
+			isComplete = false;
 	}
+	
     return true;
 
     // algorithm:
@@ -545,8 +547,29 @@ void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
 	
 	SPtr<TAddrClient> ptr, cli;
 	SPtr<TAddrIA> ia;
-	int clntCount = 0, i = 0;
-	SrvAddrMgr().firstClient();
+	int clntCount = 0;
+	int interfaceCount = 0;
+	SPtr<TSrvCfgIface>  ptrIface;
+	SPtr<TSrvCfgOptions> x;
+	while (ptrIface = SrvCfgMgr().getIface()) {
+		while (x = ptrIface->getException()) {
+			interfaceCount++;
+			if (linkaddr && x && x->getClntAddr() && *(linkaddr) == *(x->getClntAddr())) {
+				Log(Debug) << "Found per-client configuration (exception) for client with link-local="
+				<< x->getClntAddr()->getPlain() << LogEnd;
+				blqClntAddrLst.append(x->getClntAddr());
+				clntCount++;
+			}
+		}
+	}
+
+	if (!interfaceCount)
+		Log(Error) << "Unable to find any interface while searching remote id exceptions.Something is wrong." << LogEnd;
+	if (!clntCount)
+		Log(Debug) << "No client found for" << linkaddr->getPlain() << "link local address." << LogEnd;
+
+	//old method below:
+	/*SrvAddrMgr().firstClient();
 	while (cli = SrvAddrMgr().getClient(linkaddr)) {
 		blqClntsLst.first();
 		while (ptr = blqClntsLst.get())
@@ -563,12 +586,36 @@ void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
 				}
 			}
 		}
+	}*/
+}
+
+void TSrvMsgLeaseQueryReply::getAllClientExceptionByRemoteId(SPtr<TOptVendorData> remoteID) {
+	
+	int interfaceCount = 0, clntCount = 0;
+	SPtr<TSrvCfgIface>  ptrIface;
+	SPtr<TSrvCfgOptions> x;
+	while (ptrIface = SrvCfgMgr().getIface()) {
+		while (x = ptrIface->getException()) {
+			interfaceCount++;
+			SPtr<TOptVendorData> remoteId = x->getRemoteID();
+			//remote id comparing:
+			if (remoteId && (remoteId->getVendor() == remoteID->getVendor()) && (remoteId->getVendorDataLen() == remoteID->getVendorDataLen())) {
+				Log(Debug) << "Found per-client configuration (exception) for client with RemoteID: vendor="
+					<< remoteId->getVendor() << ", data="
+					<< remoteId->getVendorDataPlain() << "." << LogEnd;
+				blqClntAddrLst.append(x->getClntAddr());	
+				clntCount++;
+			}
+		}
 	}
+
+	if (!interfaceCount)
+		Log(Error) << "Unable to find any interface while searching remote id exceptions.Something is wrong." << LogEnd;
+	if (!clntCount)
+		Log(Debug) << "No client bindings existing in server database for remote id:" << remoteID << LogEnd;
 }
 
-void  TSrvMsgLeaseQueryReply::getAllRemoteIdBindings(SPtr<TDUID> opt){
 
-}
 bool TSrvMsgLeaseQueryReply::check() {
     // this should never happen
     return true;
