@@ -111,6 +111,7 @@ public:
     unsigned int removeReservedFromCache();
     void addClientExceptionsLst(List(TSrvCfgOptions) exLst);
     SPtr<TSrvCfgOptions> getClientException(SPtr<TDUID> duid, TMsg* message, bool quiet=true);
+	SPtr<TSrvCfgOptions> getException();
     bool checkReservedPrefix(SPtr<TIPv6Addr> pfx,
                              SPtr<TDUID> duid,
                              SPtr<TOptVendorData> remoteID,

@@ -36,6 +36,11 @@ bool TSrvCfgIface::bulkLeaseQuerySupport() const
 {
     return BulkLeaseQuery_;
 }
+
+SPtr<TSrvCfgOptions> TSrvCfgIface::getException() {
+	return  ExceptionsLst_.get();
+}
+
 SPtr<TSrvCfgOptions> TSrvCfgIface::getClientException(SPtr<TDUID> duid,
                                                       TMsg * parent, bool quiet) {
 
@@ -49,7 +54,7 @@ SPtr<TSrvCfgOptions> TSrvCfgIface::getClientException(SPtr<TDUID> duid,
     }
 
     SPtr<TSrvCfgOptions> x;
-    ExceptionsLst_.first();
+	ExceptionsLst_.first();
     while (x = ExceptionsLst_.get()) {
         if ( duid && x->getDuid() && (*(x->getDuid()) == *duid) ) {
             if (!quiet)
