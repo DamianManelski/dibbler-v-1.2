@@ -55,9 +55,58 @@ TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
  * @return true - answer should be sent
  */
 bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
-	//here should be code comes from old leasequery implementation
-	queryMsg->firstOption();
+	int count = 0;
+    SPtr<TOpt> opt;
+    bool ok = true;
+
+    Log(Info) << "LQ: Generating new LEASEQUERY_RESP message." << LogEnd;
+    
+    queryMsg->firstOption();
+    while ( opt = queryMsg->getOption()) {
+	switch (opt->getOptType()) {
+	case OPTION_LQ_QUERY:
+	{
+	    count++;
+	    SPtr<TSrvOptLQ> q = (Ptr*) opt;
+	    switch (q->getQueryType()) {
+	    case QUERY_BY_ADDRESS:
+		ok = queryByAddress(q, queryMsg);
+		break;
+	    case QUERY_BY_CLIENTID:
+		ok = queryByClientID(q, queryMsg);
+		break;
+	    default:
+		Options.push_back(new TOptStatusCode(STATUSCODE_UNKNOWNQUERYTYPE, "Invalid Query type.", this) );
+		Log(Warning) << "LQ: Invalid query type (" << q->getQueryType() << " received." << LogEnd;
+		return true;
+	    }
+	    if (!ok) {
+		Log(Warning) << "LQ: Malformed query detected." << LogEnd;
+		return false;
+	    }
+	    break;
+	}
+	case OPTION_CLIENTID:
+	    // copy the client-id option
+	    Options.push_back(opt);
+	    break;
+	}
+
+    }
+    if (!count) {
+	Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required LQ_QUERY option missing.", this));
 	return true;
+    }
+
+    // append SERVERID
+    SPtr<TOptDUID> serverID;
+    serverID = new TOptDUID(OPTION_SERVERID, SrvCfgMgr().getDUID(), this);
+    Options.push_back((Ptr*)serverID);
+
+    // allocate buffer
+    this->send();
+
+    return true;
 }
 /**
 *
