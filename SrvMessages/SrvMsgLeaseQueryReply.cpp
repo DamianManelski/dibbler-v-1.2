@@ -72,7 +72,7 @@ bool TSrvMsgLeaseQueryReply::answer(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 	    case QUERY_BY_ADDRESS:
 		ok = queryByAddress(q, queryMsg);
 		break;
-	    case QUERY_BY_CLIENTID:
+	    case QUERY_BY_CLIENT_ID:
 		ok = queryByClientID(q, queryMsg);
 		break;
 	    default:
@@ -230,7 +230,7 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 	// search for client
 	if (this->Bulk){
 		SPtr<TAddrClient> cli;
-		this->getAllLinkAddrBindings(addr->getAddr());
+		getAllAddrBindings(addr->getAddr());
 		
 		if (!this->blqClntsLst.count()) {
 			Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
@@ -415,11 +415,9 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	}
 	else {
 		//append first match client's binding
-		blqClntsLst.first();
-		cli = blqClntsLst.get();
-		SPtr<TIPv6Addr> d = blqClntAddrLst.get();
-		
-		appendClientData(cli);
+		blqClntAddrLst.first();
+		SPtr<TAddrClient> tmpCli = blqClntAddrLst.get();
+		appendClientData(tmpCli);
 
 		if (blqClntsLst.count() > 1)
 			isComplete = false;
@@ -445,8 +443,7 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 }
 
 bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg) {
-    /// @todo: Implement query by relay-id
-
+   
     SPtr<TOpt> opt;
     SPtr<TOptDUID> relayDuidOpt = 0;
     SPtr<TDUID> duid = 0;
@@ -466,47 +463,33 @@ bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
     }
 
 	// search for client
-	if (Bulk) {
-		
-		if (!link) {
-			Options.push_back(new TOptStatusCode(STATUSCODE_UNSPECFAIL, "You didn't send your link address.", this));
-			isComplete = true;
-			return true;
-		}
 
-		SPtr<TAddrClient> cli;
+	if (!link) {
+		Options.push_back(new TOptStatusCode(STATUSCODE_UNSPECFAIL, "You didn't send your link address.", this));
+		isComplete = true;
+		return true;
+	}
 
-		if (link->getPlain() == "0000:0000:0000:0000:0000")
-			getAllDUIDBindings(duid);
-		else
+	SPtr<TAddrClient> cli;
+
+	if (link->getPlain() == "0000:0000:0000:0000:0000")
+		getAllDUIDBindings(duid);
+	else
 
 
-		if (!blqClntsLst.count()) {
-			Log(Warning) << "BLQ: Assignement for client addr=" << duid->getPlain() << " not found." << LogEnd;
-			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
-			return true;
-		}
-		else {
-
-			blqClntsLst.first();
-			cli = blqClntsLst.get();
-			appendClientData(cli);
-
-			if (blqClntsLst.count() > 1)
-				isComplete = false;
-		}
+	if (!blqClntsLst.count()) {
+		Log(Warning) << "BLQ: Assignement for client addr=" << duid->getPlain() << " not found." << LogEnd;
+		Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+		return true;
 	}
 	else {
-		// search for client
-		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(duid);
 
-		if (!cli) {
-			Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
-			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this DUID found.", this));
-			isComplete = true;
-			return true;
-		}
+		blqClntsLst.first();
+		cli = blqClntsLst.get();
 		appendClientData(cli);
+
+		if (blqClntsLst.count() > 1)
+			isComplete = false;
 	}
    
     return true;
@@ -636,6 +619,15 @@ void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
 			}
 		}
 	}*/
+}
+
+void  TSrvMsgLeaseQueryReply::getAllAddrBindings(SPtr<TIPv6Addr> addr) {
+	
+	SPtr<TAddrClient> cli;
+	while (cli = SrvAddrMgr().getClient()) {
+		if (cli->getIA() == addr) 
+			blqClntsLst.append(cli);
+	}
 }
 
 void TSrvMsgLeaseQueryReply::getAllClientExceptionByRemoteId(SPtr<TOptVendorData> remoteID) {
