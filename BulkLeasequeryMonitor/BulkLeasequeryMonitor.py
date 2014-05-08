@@ -8,6 +8,7 @@ import BulkTest
 #import exeptions
 from BulkTest import BulkTest
 import sys
+from  SubNetCalc import *
 #reload(sys)
 #sys.setdefaultencoding('utf-8')
 
@@ -27,6 +28,16 @@ def appPrint():
 
 def main():
     appPrint()
+    subNet = SubNetCalc("2001:db8::1")
+    subNet.showAdresses()
+
+    subNet = SubNetCalc("2001:5c0:1400:a::431")
+    subNet.showAdresses()
+
+    subNet = SubNetCalc("fe80::cd80:d21c:5c25:fe49")
+    subNet.showAdresses()
+
+    subNet.calculateNetwork()
 
     queryType = input('Choose a number:')
     requestorPath = input('\nType absolute path to dibbler-requestor.exe path:')

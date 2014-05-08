@@ -24,6 +24,7 @@
   <ItemGroup>
     <Compile Include="BulkLeasequeryMonitor.py" />
     <Compile Include="BulkTest.py" />
+    <Compile Include="SubNetCalc.py" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" />
 </Project>
