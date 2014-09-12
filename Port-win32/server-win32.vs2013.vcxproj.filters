@@ -440,6 +440,12 @@
     <ClCompile Include="..\nettle\memxor.c">
       <Filter>Source Files\nettle</Filter>
     </ClCompile>
+    <ClCompile Include="..\SrvMessages\SrvMsgLeaseQueryData.cpp">
+      <Filter>Source Files\SrvMessages</Filter>
+    </ClCompile>
+    <ClCompile Include="..\SrvMessages\SrvMsgLeaseQueryDone.cpp">
+      <Filter>Source Files\SrvMessages</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\SrvCfgMgr\SrvLexer.l">
@@ -783,6 +789,12 @@
     </ClInclude>
     <ClInclude Include="..\nettle\sha.h">
       <Filter>Header Files\nettle</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrvMessages\SrvMsgLeaseQueryData.h">
+      <Filter>Header Files\SrvMessages</Filter>
+    </ClInclude>
+    <ClInclude Include="..\SrvMessages\SrvMsgLeaseQueryDone.h">
+      <Filter>Header Files\SrvMessages</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

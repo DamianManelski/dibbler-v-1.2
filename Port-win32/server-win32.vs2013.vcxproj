@@ -108,6 +108,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\SrvMessages\SrvMsgLeaseQueryData.cpp" />
+    <ClCompile Include="..\SrvMessages\SrvMsgLeaseQueryDone.cpp" />
     <ClCompile Include="..\SrvTransMgr\SrvTransMgr.cpp" />
     <ClCompile Include="..\AddrMgr\AddrAddr.cpp" />
     <ClCompile Include="..\AddrMgr\AddrClient.cpp" />
@@ -270,6 +272,8 @@
     <ClInclude Include="..\Options\OptUserClass.h" />
     <ClInclude Include="..\Options\OptVendorClass.h" />
     <ClInclude Include="..\Options\OptVendorSpecInfo.h" />
+    <ClInclude Include="..\SrvMessages\SrvMsgLeaseQueryData.h" />
+    <ClInclude Include="..\SrvMessages\SrvMsgLeaseQueryDone.h" />
     <ClInclude Include="..\SrvOptions\SrvOptAddrParams.h" />
     <ClInclude Include="..\SrvOptions\SrvOptAuthentication.h" />
     <ClInclude Include="..\SrvOptions\SrvOptDNSServers.h" />
