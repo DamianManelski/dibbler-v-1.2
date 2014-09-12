@@ -364,7 +364,7 @@ bool ReqTransMgr::SendTcpMsg()
     case QUERY_BY_CLIENT_ID:
 
         if (CfgMgr->clientId) {
-            Log(Debug) << "Creating ClientId-based query. Asking for " << CfgMgr->clientId << " RelayId." << LogEnd;
+            Log(Debug) << "Creating ClientId-based query. Asking for " << CfgMgr->clientId << " ClientId." << LogEnd;
             // RelayId-based query
             buf[0] = QUERY_BY_CLIENT_ID;
             // buf[1..16] - link address, leave as ::
@@ -378,7 +378,7 @@ bool ReqTransMgr::SendTcpMsg()
             bufLen += optDuid->getSize();
 
         } else {
-            Log(Debug) << "Cannot creating ClientId-based query for " << CfgMgr->clientId << " RelayId." << "It's not present in the server" <<LogEnd;
+            Log(Debug) << "Cannot creating ClientId-based query for " << CfgMgr->clientId << " ClientId." << "It's not present in the server" <<LogEnd;
             return false;
         }
     break;
@@ -434,11 +434,9 @@ bool ReqTransMgr::SendTcpMsg()
             }
         }
     break;
-
     }
 
-    
-    SPtr<TDUID> clientDuid = new TDUID("00:01:00:01:0e:ec:13:db:00:02:02:02:02:02");
+    SPtr<TDUID> clientDuid = new TDUID(CfgMgr->clientId);
 
     SPtr<TOpt> opt = new TOptDUID(OPTION_CLIENTID, clientDuid, msg);
     msg->addOption(opt);
