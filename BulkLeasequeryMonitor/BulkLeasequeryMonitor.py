@@ -8,7 +8,10 @@ import BulkTest
 #import exeptions
 from BulkTest import BulkTest
 import sys
-from  SubNetCalc import *
+#from  SubNetCalc import *
+from Utils import Utils
+import ntpath
+import string
 #reload(sys)
 #sys.setdefaultencoding('utf-8')
 
@@ -27,27 +30,19 @@ def appPrint():
     print('\n')
 
 def main():
+    #init application data
     appPrint()
-    subNet = SubNetCalc("2001:db8::1")
-    subNet.showAdresses()
-
-    subNet = SubNetCalc("2001:5c0:1400:a::431")
-    subNet.showAdresses()
-
-    subNet = SubNetCalc("fe80::cd80:d21c:5c25:fe49")
-    subNet.showAdresses()
-
-    subNet.calculateNetwork()
-
-    queryType = input('Choose a number:')
-    requestorPath = input('\nType absolute path to dibbler-requestor.exe path:')
-    if (requestorPath == "" ):
-        requestorPath = 'C:\\Users\\bulk\\Desktop\\dibbler-windows\\dibbler-v-1.2\\Port-win32\\Debug32\\bin'
-    arguments=""
-    test1 = BulkTest('Just a name',queryType,requestorPath,arguments)
-    test1.displayTestParameters()
-    test1.runTest()
+    utils = Utils()
+    isBulkFind = False
+    #interactiveMode = raw_input('         Interactive mode [Y/N]:')
     
+    queryType = input('Choose query type [number]:')
+    arguments = ""
+    if utils.chceckIfFileExist(utils.requestorPath+utils.dibbler_name):
+        isBulkFind = True
+        test1 = BulkTest('Just a name',queryType,utils.requestorPath,arguments)
+        test1.displayTestParameters()
+        test1.runTest()
 
 if __name__ == "__main__":
     main()

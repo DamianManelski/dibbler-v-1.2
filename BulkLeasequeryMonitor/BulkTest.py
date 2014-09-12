@@ -1,4 +1,4 @@
-# -*- coding: cp1250 -*-
+ #-*- coding: cp1250 -*-
 import os
 import subprocess
 import datetime
@@ -35,8 +35,8 @@ class BulkTest:
           self.DIR = ''
 
       self.APP_NAME='\dibbler-requestor'
-      self.IFACE_NAME = 'Po³¹czenie lokalne 2'
-      self.DST_ADDR='2001:4070:11:300:233::1'
+      self.IFACE_NAME = 'Po³¹czenie lokalne'
+      self.DST_ADDR='2001:4070:11:300:233::159'
       self.LINK_ADDR = 'fe80:1459:2ed8:f5eb:fed5'
       self.DUID = 'fe80:1459:2ed8:f5eb:fed5'
       self.eNUMBER = '343'
@@ -58,10 +58,11 @@ class BulkTest:
        
        #example
        #-i "Po??czenie lokalne 2" -dstaddr 2001:4070:11:300:233::1  -bulk -m RELAY_ID fe80:1459:2ed8:f5eb:fed3 -linkAddr fe80:1459:2ed8:f5eb:fed5
-
+       
        tmpApp = self.DIR+self.APP_NAME
+       #print(tmpApp, '-i', 'Po³¹czenie lokalne','-dstaddr',self.DST_ADDR, '-bulk', '-m',self.querytype, self.LINK_ADDR);
        if(self.querytype == "ADDRESS"):
-         result = subprocess.check_output([tmpApp, '-i', self.IFACE_NAME,'-dstaddr',self.DST_ADDR, '-bulk', '-m',self.querytype, self.LINK_ADDR ])
+          result = subprocess.check_output([tmpApp, '-i', 'Po³¹czenie lokalne','-dstaddr',self.DST_ADDR, '-bulk', '-m',self.querytype, self.LINK_ADDR ])
        if(self.querytype == "LINK_ADDRESS"):
          result = subprocess.check_output([tmpApp, '-i', self.IFACE_NAME,'-dstaddr', self.DST_ADDR, '-bulk', '-m',self.querytype, self.LINK_ADDR ])
        if(self.querytype == "CLIENT_ID"):
