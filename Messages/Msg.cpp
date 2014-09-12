@@ -127,8 +127,9 @@ int TMsg::storeSelf(char * buffer)
     int tmp = this->TransID;
     
     if (Bulk) {
+		//hope this should fix wrong frame parsing:
+        int tmpSize = this->getSize();
 
-        int tmpSize = this->MsgSize;
         buffer[1]=tmpSize%256; tmpSize/=256;
         buffer[0]=tmpSize%256; tmpSize/=256;
 
