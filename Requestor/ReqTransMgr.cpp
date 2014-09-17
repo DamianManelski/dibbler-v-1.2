@@ -436,7 +436,17 @@ bool ReqTransMgr::SendTcpMsg()
     break;
     }
 
-    SPtr<TDUID> clientDuid = new TDUID(CfgMgr->clientId);
+
+	SPtr<TDUID> clientDuid;
+	if (CfgMgr->clientId)
+	{
+		clientDuid = new TDUID(CfgMgr->clientId);
+	}
+	else
+	{
+		clientDuid = new TDUID("00:01:00:01:0e:ec:13:db:00:02:02:02:02:02");
+	}
+    
 
     SPtr<TOpt> opt = new TOptDUID(OPTION_CLIENTID, clientDuid, msg);
     msg->addOption(opt);
@@ -449,16 +459,8 @@ bool ReqTransMgr::SendTcpMsg()
     memset(msgbuf, 0xff, 1024);
 
     msgbufLen = msg->storeSelf(msgbuf);
-
+	
     Log(Debug) << msg->getSize() << "-byte long LQ_QUERY message prepared." << LogEnd;
-
-    unsigned short tmpl=0;
-    int pos=0;
-    /*for(pos=0;pos<msgbufLen;pos++) {
-        tmpl = msgbuf[pos];
-        Log(Debug) << "pos"<<pos<<":"<<tmpl <<LogEnd;
-        tmpl=0;
-    }*/
 
     if (this->Socket->send_tcp(msgbuf, msgbufLen, dstAddr, DHCPSERVER_PORT)<0) {
         Log(Error) << "Message transmission failed." << LogEnd;
