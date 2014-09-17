@@ -127,26 +127,21 @@ int TMsg::storeSelf(char * buffer)
     int tmp = this->TransID;
     
     if (Bulk) {
-		//hope this should fix wrong frame parsing:
-        int tmpSize = this->getSize();
 
-        buffer[1]=tmpSize%256; tmpSize/=256;
-        buffer[0]=tmpSize%256; tmpSize/=256;
-
-        buffer[2]=(char)MsgType;
+		buffer[2]=(char)MsgType;
         buffer[5] = tmp%256;  tmp = tmp/256;
         buffer[4] = tmp%256;  tmp = tmp/256;
         buffer[3] = tmp%256;  tmp = tmp/256;
         buffer+=6;
 
-    } else {
-    *(buffer++) = (char)MsgType;
-    
-    /* ugly 3-byte version of htons/htonl */
-    buffer[2] = tmp%256;  tmp = tmp/256;
-    buffer[1] = tmp%256;  tmp = tmp/256;
-    buffer[0] = tmp%256;  tmp = tmp/256;
-    buffer+=3;
+    } else 
+	{
+		*(buffer++) = (char)MsgType;
+		/* ugly 3-byte version of htons/htonl */
+		buffer[2] = tmp%256;  tmp = tmp/256;
+		buffer[1] = tmp%256;  tmp = tmp/256;
+		buffer[0] = tmp%256;  tmp = tmp/256;
+		buffer+=3;
     }
 
     TOptList::iterator option;
@@ -159,6 +154,12 @@ int TMsg::storeSelf(char * buffer)
     calculateDigests(start, buffer - start);
 #endif
 
+	if (Bulk)
+	{
+		int tmpSize = buffer - start - 2;
+		start[1] = tmpSize % 256; tmpSize /= 256;
+		start[0] = tmpSize % 256; tmpSize /= 256;
+	}
     return buffer-start;
 }
 
