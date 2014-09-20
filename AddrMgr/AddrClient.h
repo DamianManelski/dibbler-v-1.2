@@ -26,16 +26,18 @@ class TAddrClient
     friend std::ostream & operator<<(std::ostream & strum, TAddrClient &x);
 
 public:
+	
+    TAddrClient(SPtr<TDUID> duid);
+    SPtr<TDUID> getDUID();
 
+	SPtr<TIPv6Addr> getRelayLinkAddr();
+	void setRelayLinkAddr(SPtr<TIPv6Addr> linkAddr);
 
 	SPtr<TOptVendorData> getRemoteId();
 	void setRemoteId(SPtr<TOptVendorData>  remoteId);
 
 	SPtr<TDUID> getRelayId();
 	void setRelayId(SPtr<TDUID> relayId);
-
-    TAddrClient(SPtr<TDUID> duid);
-    SPtr<TDUID> getDUID();
 
     //--- IA list ---
     void firstIA();
@@ -91,6 +93,7 @@ private:
     SPtr<TDUID> DUID_;
 	SPtr<TOptVendorData> RemoteId;
 	SPtr<TDUID> RelayId;
+	SPtr<TIPv6Addr> RelayLinkAddr;
 
     uint32_t SPI_;
     uint64_t ReplayDetectionRcvd_;

@@ -34,7 +34,7 @@ class TSrvMsgLeaseQueryReply : public TSrvMsg
 	void  getAllClientDUIDRelatedBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr> linkaddr = NULL);
 	void  getAllRemoteIdRelatedBindings(SPtr<TOptVendorData> remoteID);
 	void  getAllRelayIdRelatedBindings(SPtr<TDUID> relayId);
-	void  getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr);
+	void  getAllRelayLinkAddrRelatedBindings(SPtr<TIPv6Addr> linkaddr);
 	void  getAllAddrBindings(SPtr<TIPv6Addr> addr);
 	
     bool answer(SPtr<TSrvMsgLeaseQuery> query);

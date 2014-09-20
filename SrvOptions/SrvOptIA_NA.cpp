@@ -285,15 +285,22 @@ bool TSrvOptIA_NA::assignFixedLease(SPtr<TSrvOptIA_NA> req, bool quiet) {
         
         SubOptions.append(new TOptStatusCode(STATUSCODE_SUCCESS,"Assigned fixed address.", Parent));
 
+
 		TSrvMsg*  parent = dynamic_cast<TSrvMsg*>  (this->Parent);
-
+		
 		SPtr<TOptVendorData> remoteId = parent->getOption(OPTION_REMOTE_ID);
-
+		
 		SPtr<TOptDUID> relayIdOpt = parent->getOption(OPTION_RELAY_ID);
-		SPtr<TDUID> relayId = relayIdOpt->getDUID();
-	
+		SPtr<TDUID> relayId;
 
-        SrvAddrMgr().addClntAddr(ClntDuid, ClntAddr, Iface, IAID_, T1_, T2_, reservedAddr, pref, valid, quiet,remoteId,relayId);
+		if (relayIdOpt)
+		{
+			relayId = relayIdOpt->getDUID();
+		}
+		SPtr<TIPv6Addr> relayLinkAddr = parent->getRelayLinkAddr();
+		
+
+        SrvAddrMgr().addClntAddr(ClntDuid, ClntAddr, Iface, IAID_, T1_, T2_, reservedAddr, pref, valid, quiet,remoteId,relayId,relayLinkAddr);
         SrvCfgMgr().addClntAddr(this->Iface, reservedAddr);
 
         return true;

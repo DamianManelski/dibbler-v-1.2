@@ -327,7 +327,7 @@ bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgL
 	// search for client
 	if (this->Bulk) {
 		SPtr<TAddrClient> cli;
-		this->getAllLinkAddrBindings(q->getLinkAddr());
+		this->getAllRelayLinkAddrRelatedBindings(q->getLinkAddr());
 
 		if (!this->blqClntsLst.count()) {
 			Log(Warning) << "LQ: Assignment for client link addr=" << link->getPlain() << " not found." << LogEnd;
@@ -385,9 +385,8 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	// search for client
 	
 	SPtr<TAddrClient> cli;
-
-		
 	SPtr<TIPv6Addr> peer;
+
 	if (queryMsg) {
 		remoteId = queryMsg->getRemoteID();
 		Log(Debug) << "Checking exceptions database for remote id: " << remoteId->getPlain() << LogEnd;
@@ -400,7 +399,7 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		return false;
 	}
 
-	if (!blqClntAddrLst.count()) {
+	if (!blqClntsLst.count()) {
 		Log(Warning) << "LQ: Assignment for client RemoteId not found." << LogEnd;
 		//Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
 		Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
@@ -409,9 +408,9 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	}
 	else {
 		//append first match client's binding
-		blqClntAddrLst.first();
-		SPtr<TAddrClient> tmpCli = blqClntAddrLst.get();
-		appendClientData(tmpCli);
+		blqClntsLst.first();
+		cli = blqClntsLst.get();
+		appendClientData(cli);
 
 		if (blqClntsLst.count() > 1)
 			isComplete = false;
@@ -547,50 +546,21 @@ void  TSrvMsgLeaseQueryReply::getAllClientDUIDRelatedBindings(SPtr<TDUID> opt, S
 	if (cli)
 		blqClntsLst.append(cli);
 }
-void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
+void  TSrvMsgLeaseQueryReply::getAllRelayLinkAddrRelatedBindings(SPtr<TIPv6Addr> linkaddr) {
 	
-	SPtr<TAddrClient> ptr, cli;
-	SPtr<TAddrIA> ia;
-	int clntCount = 0;
-	int interfaceCount = 0;
-	SPtr<TSrvCfgIface>  ptrIface;
-	SPtr<TSrvCfgOptions> x;
-	while (ptrIface = SrvCfgMgr().getIface()) {
-		while (x = ptrIface->getException()) {
-			interfaceCount++;
-			if (linkaddr && x && x->getClntAddr() && *(linkaddr) == *(x->getClntAddr())) {
-				Log(Debug) << "Found per-client configuration (exception) for client with link-local="
-				<< x->getClntAddr()->getPlain() << LogEnd;
-				blqClntAddrLst.append(x->getClntAddr());
-				clntCount++;
-			}
-		}
-	}
-
-	if (!interfaceCount)
-		Log(Error) << "Unable to find any interface while searching remote id exceptions.Something is wrong." << LogEnd;
-	if (!clntCount)
-		Log(Debug) << "No client found for" << linkaddr->getPlain() << "link local address." << LogEnd;
-
-	//old method below:
-	/*SrvAddrMgr().firstClient();
-	while (cli = SrvAddrMgr().getClient(linkaddr)) {
-		blqClntsLst.first();
-		while (ptr = blqClntsLst.get())
+	SPtr<TAddrClient> cli;
+	linkaddr->getPlain();
+	SrvAddrMgr().firstClient();
+	while (cli = SrvAddrMgr().getClient())
+	{
+		if (cli)
 		{
-			if (!blqClntsLst.count()){
+			SPtr<TIPv6Addr> relayLinkAddr = cli->getRelayLinkAddr();
+			//check if address is in subnet
+			if (relayLinkAddr->getPlain() == linkaddr->getPlain())
 				blqClntsLst.append(cli);
-				++clntCount;
-			}
-			else {
-				ptr->firstIA();
-				while (ia = ptr->getIA()) {
-					if (ia->getAddr(linkaddr))
-						blqClntsLst.append(cli);
-				}
-			}
 		}
-	}*/
+	}	
 }
 
 void  TSrvMsgLeaseQueryReply::getAllAddrBindings(SPtr<TIPv6Addr> addr) {

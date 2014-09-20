@@ -470,6 +470,7 @@ SPtr<TSrvMsg> TSrvIfaceMgr::decodeRelayForw(SPtr<TIfaceIface> physicalIface,
 	TOptList echoListTbl[HOP_COUNT_LIMIT];
 	int relays = 0; // number of nested RELAY_FORW messages
 	SPtr<TOptVendorData> remoteID = 0;
+	SPtr<TIPv6Addr> relayLinkAddr;
 	SPtr<TOptOptionRequest> echo = 0;
 	SPtr<TOpt> gen = 0;
 	int ifindex = -1;
@@ -505,6 +506,7 @@ SPtr<TSrvMsg> TSrvIfaceMgr::decodeRelayForw(SPtr<TIfaceIface> physicalIface,
 		SPtr<TIPv6Addr> peerAddr = new TIPv6Addr(buf + 18, false);
 		buf += 34;
 		bufsize -= 34;
+		relayLinkAddr=linkAddr;
 
 		// options: only INTERFACE-ID and RELAY_MSG are allowed
 		while (bufsize >= 4) {
@@ -671,6 +673,9 @@ SPtr<TSrvMsg> TSrvIfaceMgr::decodeRelayForw(SPtr<TIfaceIface> physicalIface,
 	if (!msg) {
 		return 0;
 	}
+
+	msg->setRelayLinkAddr(relayLinkAddr);
+
 	for (int i = 0; i < relays; i++) {
 		msg->addRelayInfo(linkAddrTbl[i], peerAddrTbl[i], hopTbl[i], echoListTbl[i]);
 	}

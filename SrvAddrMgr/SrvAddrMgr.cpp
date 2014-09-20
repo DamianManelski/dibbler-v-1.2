@@ -129,7 +129,7 @@ bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid , SPtr<TIPv6Addr> clntAddr,
 bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid, SPtr<TIPv6Addr> clntAddr,
 	int iface, unsigned long IAID, unsigned long T1, unsigned long T2,
 	SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,
-	bool quiet, SPtr<TOptVendorData> remoteId, SPtr<TDUID> relayId)
+	bool quiet, SPtr<TOptVendorData> remoteId, SPtr<TDUID> relayId,SPtr<TIPv6Addr> relayLinkAdr)
 {
 
 	// find this client
@@ -138,10 +138,12 @@ bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid, SPtr<TIPv6Addr> clntAddr,
 	while (ptrClient = this->getClient()) {
 		if ((*ptrClient->getDUID()) == (*clntDuid))
 		{
-			if (remoteId!=NULL)
+			if (remoteId != NULL)
 				ptrClient->setRemoteId(remoteId);
-			if (relayId!=NULL)
+			if (relayId != NULL)
 				ptrClient->setRelayId(relayId);
+			if (relayLinkAdr != NULL)
+				ptrClient->setRelayLinkAddr(relayLinkAdr);
 		}
 	}
 	return 	addClntAddr(clntDuid, clntAddr, iface, IAID, T1, T2, addr, pref, valid, quiet);

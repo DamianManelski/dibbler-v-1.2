@@ -80,6 +80,9 @@ public:
 	void setRelayID(SPtr<TDUID> relayId);
 	SPtr<TDUID> getRelayId();
 
+	void setRelayLinkAddr(SPtr<TIPv6Addr> linkAddr);
+	SPtr<TIPv6Addr> getRelayLinkAddr();
+
     unsigned long getTimeout();
     void doDuties();
     void send(int dstPort = 0);
@@ -145,6 +148,8 @@ protected:
                                    // AND relay appended RemoteID
 
 	SPtr<TDUID> RelayID;
+	SPtr<TIPv6Addr> RelayLinkAddr;
+
     /// used in tests only. If non-zero, send message type is set to that type
     uint8_t forceMsgType_;
 

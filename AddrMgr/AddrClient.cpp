@@ -362,6 +362,16 @@ void TAddrClient::generateReconfKey() {
     fill_random(&ReconfKey_[0], 16);
 }
 
+SPtr<TIPv6Addr> TAddrClient::getRelayLinkAddr()
+{
+	return RelayLinkAddr;
+}
+
+void TAddrClient::setRelayLinkAddr(SPtr<TIPv6Addr> linkAddr)
+{
+	RelayLinkAddr = linkAddr;
+}
+
 // --------------------------------------------------------------------
 // --- operators ------------------------------------------------------
 // --------------------------------------------------------------------

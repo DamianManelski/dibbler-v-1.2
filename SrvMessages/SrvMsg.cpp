@@ -1303,3 +1303,13 @@ void TSrvMsg::setPhysicalIface(int iface) {
 int TSrvMsg::getPhysicalIface() const {
     return physicalIface_;
 }
+
+void TSrvMsg::setRelayLinkAddr(SPtr<TIPv6Addr> linkAddr)
+{
+	RelayLinkAddr = linkAddr;
+}
+
+SPtr<TIPv6Addr> TSrvMsg::getRelayLinkAddr()
+{
+	return RelayLinkAddr;
+}

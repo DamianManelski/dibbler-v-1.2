@@ -54,7 +54,7 @@ class TSrvAddrMgr : public TAddrMgr
 	bool addClntAddr(SPtr<TDUID> clntDuid, SPtr<TIPv6Addr> clntAddr,
 		int iface, unsigned long IAID, unsigned long T1, unsigned long T2,
 		SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,
-		bool quiet,SPtr<TOptVendorData> remoteId,SPtr<TDUID> relayId);
+		bool quiet,SPtr<TOptVendorData> remoteId,SPtr<TDUID> relayId,SPtr<TIPv6Addr> relayLinkAddr);
 
     bool delClntAddr(SPtr<TDUID> duid,unsigned long IAID, SPtr<TIPv6Addr> addr,
                      bool quiet);
