@@ -77,6 +77,9 @@ public:
     void setRemoteID(SPtr<TOptVendorData> remoteID);
     SPtr<TOptVendorData> getRemoteID();
 
+	void setRelayID(SPtr<TDUID> relayId);
+	SPtr<TDUID> getRelayId();
+
     unsigned long getTimeout();
     void doDuties();
     void send(int dstPort = 0);
@@ -141,6 +144,7 @@ protected:
     SPtr<TOptVendorData> RemoteID; // this MAY be set, if message was recevied via relay
                                    // AND relay appended RemoteID
 
+	SPtr<TDUID> RelayID;
     /// used in tests only. If non-zero, send message type is set to that type
     uint8_t forceMsgType_;
 

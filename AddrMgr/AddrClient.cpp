@@ -35,6 +35,26 @@ SPtr<TDUID> TAddrClient::getDUID() {
     return DUID_;
 }
 
+SPtr<TOptVendorData> TAddrClient::getRemoteId()
+{
+	return RemoteId;
+}
+
+void TAddrClient::setRemoteId(SPtr<TOptVendorData> remoteId) 
+{
+	RemoteId = remoteId;
+}
+
+SPtr<TDUID> TAddrClient::getRelayId()
+{
+	return RelayId;
+}
+
+void TAddrClient::setRelayId(SPtr<TDUID> relayId)
+{
+	RelayId = relayId;
+}
+
 // --- IA ------------------------------------------------------------
 
 

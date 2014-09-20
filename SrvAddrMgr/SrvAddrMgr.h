@@ -16,6 +16,7 @@
 #include "AddrMgr.h"
 #include "SrvCfgAddrClass.h"
 #include "SrvCfgPD.h"
+#include "OptVendorData.h"
 
 #define SrvAddrMgr() (TSrvAddrMgr::instance())
 
@@ -48,6 +49,13 @@ class TSrvAddrMgr : public TAddrMgr
                      int iface, unsigned long IAID, unsigned long T1, unsigned long T2,
                      SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,
                      bool quiet);
+
+	//based on remoteid
+	bool addClntAddr(SPtr<TDUID> clntDuid, SPtr<TIPv6Addr> clntAddr,
+		int iface, unsigned long IAID, unsigned long T1, unsigned long T2,
+		SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,
+		bool quiet,SPtr<TOptVendorData> remoteId,SPtr<TDUID> relayId);
+
     bool delClntAddr(SPtr<TDUID> duid,unsigned long IAID, SPtr<TIPv6Addr> addr,
                      bool quiet);
     virtual bool verifyAddr(SPtr<TIPv6Addr> addr);

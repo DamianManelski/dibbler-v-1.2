@@ -27,6 +27,7 @@
 #include "Msg.h"
 #include "SrvAddrMgr.h"
 #include "SrvCfgMgr.h"
+#include "OptVendorData.h"
 
 using namespace std;
 
@@ -282,8 +283,13 @@ bool TSrvOptIA_NA::assignFixedLease(SPtr<TSrvOptIA_NA> req, bool quiet) {
         SubOptions.append(optAddr);
         
         SubOptions.append(new TOptStatusCode(STATUSCODE_SUCCESS,"Assigned fixed address.", Parent));
-        
-        SrvAddrMgr().addClntAddr(ClntDuid, ClntAddr, Iface, IAID_, T1_, T2_, reservedAddr, pref, valid, quiet);
+
+		TSrvMsg*  parent = dynamic_cast<TSrvMsg*>  (this->Parent);
+		SPtr<TOptVendorData> remoteId = parent->getRemoteID();
+		SPtr<TDUID> relayId = parent->getRelayId();
+	
+
+        SrvAddrMgr().addClntAddr(ClntDuid, ClntAddr, Iface, IAID_, T1_, T2_, reservedAddr, pref, valid, quiet,remoteId,relayId);
         SrvCfgMgr().addClntAddr(this->Iface, reservedAddr);
 
         return true;

@@ -1226,6 +1226,16 @@ SPtr<TOptVendorData> TSrvMsg::getRemoteID()
     return RemoteID;
 }
 
+void TSrvMsg::setRelayID(SPtr<TDUID> relayId)
+{
+	RelayID = relayId;
+}
+
+SPtr<TDUID> TSrvMsg::getRelayId()
+{
+	return RelayID;
+}
+
 /**
  * copy status-code to top-level if something is wrong (i.e. status-code!=SUCCESS)
  *

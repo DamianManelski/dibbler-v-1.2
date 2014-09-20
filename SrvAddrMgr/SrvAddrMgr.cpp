@@ -19,6 +19,7 @@
 #include "SrvCfgAddrClass.h"
 #include "Portable.h"
 #include "SrvCfgMgr.h"
+#include "OptVendorData.h"
 
 using namespace std;
 
@@ -95,7 +96,7 @@ bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid , SPtr<TIPv6Addr> clntAddr,
     // have we found this IA?
     if (!ptrIA) {
         ptrIA = new TAddrIA(cfgIface->getName(), iface, IATYPE_IA, clntAddr, clntDuid, T1, T2, IAID);
-        ptrClient->addIA(ptrIA);
+		ptrClient->addIA(ptrIA);
         if (!quiet)
             Log(Debug) << "Adding IA (IAID=" << IAID << ") to addrDB." << LogEnd;
     }
@@ -122,6 +123,29 @@ bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid , SPtr<TIPv6Addr> clntAddr,
                    << " to IA (IAID=" << IAID << ") to addrDB." << LogEnd;
     return true;
 }
+
+
+
+bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid, SPtr<TIPv6Addr> clntAddr,
+	int iface, unsigned long IAID, unsigned long T1, unsigned long T2,
+	SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,
+	bool quiet,SPtr<TOptVendorData> remoteId,SPtr<TDUID> relayId)
+{
+
+	// find this client
+	SPtr <TAddrClient> ptrClient;
+	this->firstClient();
+	while (ptrClient = this->getClient()) {
+		if ((*ptrClient->getDUID()) == (*clntDuid))
+		{
+			ptrClient->setRemoteId(remoteId);
+			ptrClient->setRelayId(relayId);
+		}
+	}
+	return 	addClntAddr(clntDuid, clntAddr, iface, IAID, T1, T2, addr, pref, valid, quiet);
+}
+//TSrvMsg*  parent = dynamic_cast<TSrvMsg*>  (this->Parent);
+//		SPtr<TOptVendorData> remoteId = parent->getRemoteID();
 
 /// Frees address (also deletes IA and/or client, if this was last address)
 ///

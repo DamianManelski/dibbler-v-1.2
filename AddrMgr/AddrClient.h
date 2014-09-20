@@ -19,12 +19,21 @@ class TAddrClient;
 #include "AddrIA.h"
 #include "DUID.h"
 #include "Portable.h"
+#include "OptVendorData.h"
 
 class TAddrClient
 {
     friend std::ostream & operator<<(std::ostream & strum, TAddrClient &x);
 
 public:
+
+
+	SPtr<TOptVendorData> getRemoteId();
+	void setRemoteId(SPtr<TOptVendorData>  remoteId);
+
+	SPtr<TDUID> getRelayId();
+	void setRelayId(SPtr<TDUID> relayId);
+
     TAddrClient(SPtr<TDUID> duid);
     SPtr<TDUID> getDUID();
 
@@ -80,6 +89,8 @@ private:
     List(TAddrIA) TALst;
     List(TAddrIA) PDLst;
     SPtr<TDUID> DUID_;
+	SPtr<TOptVendorData> RemoteId;
+	SPtr<TDUID> RelayId;
 
     uint32_t SPI_;
     uint64_t ReplayDetectionRcvd_;
