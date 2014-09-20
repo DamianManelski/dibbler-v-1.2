@@ -278,7 +278,7 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	// search for client
 	if (this->Bulk) {
 		SPtr<TAddrClient> cli;
-		this->getAllDUIDBindings(duid);
+		this->getAllClientDUIDRelatedBindings(duid);
 
 		if (!this->blqClntsLst.count()) {
 			Log(Warning) << "BLQ: Assignement for client addr=" << duid->getPlain() << " not found." << LogEnd;
@@ -394,7 +394,7 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	}
 
 	if (remoteId) {
-		getAllClientExceptionByRemoteId(remoteId);
+		getAllRemoteIdRelatedBindings(remoteId);
 	} else {
 		Log(Error) << "remoteId or link addrres not specified" << LogEnd;
 		return false;
@@ -467,12 +467,12 @@ bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 	SPtr<TAddrClient> cli;
 
 	if (link->getPlain() == "0000:0000:0000:0000:0000")
-		getAllDUIDBindings(duid);
+		getAllClientDUIDRelatedBindings(duid);
 	else
 
 
 	if (!blqClntsLst.count()) {
-		Log(Warning) << "BLQ: Assignement for client addr=" << duid->getPlain() << " not found." << LogEnd;
+		Log(Warning) << "BLQ: Assignment for client addr=" << duid->getPlain() << " not found." << LogEnd;
 		Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
 		return true;
 	}
@@ -538,39 +538,14 @@ void TSrvMsgLeaseQueryReply::appendClientData(SPtr<TAddrClient> cli) {
     Options.push_back((Ptr*)cliData);
 }
 
-void  TSrvMsgLeaseQueryReply::getAllDUIDBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr> linkaddr){
+void  TSrvMsgLeaseQueryReply::getAllClientDUIDRelatedBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr> linkaddr){
 	
 	SPtr<TAddrClient> ptr, cli;
 	int clntCount = 0, i=0;
 	SrvAddrMgr().firstClient();
-
-
 	cli = SrvAddrMgr().getClient(opt);
 	if (cli)
 		blqClntsLst.append(cli);
-
-	/*while (cli = SrvAddrMgr().getClient(opt)) {
-		blqClntsLst.first();
-		while (ptr = blqClntsLst.get())
-		{
-			if (!blqClntsLst.count()){
-				blqClntsLst.append(cli);
-				++clntCount;
-			}
-			else {
-				if (*(ptr->getDUID()) == (*opt)){
-					if (linkaddr){
-						SPtr<TIPv6Addr> tmpAddr;
-						tmpAddr = (Ptr*) ptr->getIA();
-						if (tmpAddr->getPlain() == linkaddr->getPlain())
-							blqClntsLst.append(cli);
-					}
-					blqClntsLst.append(cli);
-					++clntCount;
-				}
-			}
-		}
-	}*/
 }
 void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
 	
@@ -628,30 +603,15 @@ void  TSrvMsgLeaseQueryReply::getAllAddrBindings(SPtr<TIPv6Addr> addr) {
 		blqClntsLst.append(cli);
 }
 
-void TSrvMsgLeaseQueryReply::getAllClientExceptionByRemoteId(SPtr<TOptVendorData> remoteID) {
+void TSrvMsgLeaseQueryReply::getAllRemoteIdRelatedBindings(SPtr<TOptVendorData> remoteID) {
 	
-	int interfaceCount = 0, clntCount = 0;
-	SPtr<TSrvCfgIface>  ptrIface;
-	SPtr<TSrvCfgOptions> x;
-	while (ptrIface = SrvCfgMgr().getIface()) {
-		while (x = ptrIface->getException()) {
-			interfaceCount++;
-			SPtr<TOptVendorData> remoteId = x->getRemoteID();
-			//remote id comparing:
-			if (remoteId && (remoteId->getVendor() == remoteID->getVendor()) && (remoteId->getVendorDataLen() == remoteID->getVendorDataLen())) {
-				Log(Debug) << "Found per-client configuration (exception) for client with RemoteID: vendor="
-					<< remoteId->getVendor() << ", data="
-					<< remoteId->getVendorDataPlain() << "." << LogEnd;
-				blqClntAddrLst.append(x->getClntAddr());	
-				clntCount++;
-			}
-		}
+	SPtr<TAddrClient> cli;
+	SrvAddrMgr().firstClient();
+	while (cli = SrvAddrMgr().getClient())
+	{
+		if (cli->getRemoteId()== remoteID)
+			blqClntsLst.append(cli);
 	}
-
-	if (!interfaceCount)
-		Log(Error) << "Unable to find any interface while searching remote id exceptions.Something is wrong." << LogEnd;
-	if (!clntCount)
-		Log(Debug) << "No client bindings existing in server database for remote id:" << remoteID << LogEnd;
 }
 
 
@@ -705,4 +665,15 @@ bool TSrvMsgLeaseQueryReply::validateMsg(SPtr<TSrvMsgLeaseQuery> queryMsg)
 }
 string TSrvMsgLeaseQueryReply::getName() const {
     return "LEASE-QUERY-REPLY";
+}
+
+void TSrvMsgLeaseQueryReply::getAllRelayIdRelatedBindings(SPtr<TDUID> relayId)
+{
+	SPtr<TAddrClient> cli;
+	SrvAddrMgr().firstClient();
+	while (cli = SrvAddrMgr().getClient())
+	{
+		if (cli->getRelayId() == relayId)
+			blqClntsLst.append(cli);
+	}
 }
