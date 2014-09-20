@@ -227,7 +227,7 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		getAllAddrBindings(addr->getAddr());
 		
 		if (!this->blqClntsLst.count()) {
-			Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
+			Log(Warning) << "LQ: Assignment for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
 			return true;
 		}
@@ -281,7 +281,7 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		this->getAllClientDUIDRelatedBindings(duid);
 
 		if (!this->blqClntsLst.count()) {
-			Log(Warning) << "BLQ: Assignement for client addr=" << duid->getPlain() << " not found." << LogEnd;
+			Log(Warning) << "BLQ: Assignment for client addr=" << duid->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
 			return true;
 		}
@@ -301,7 +301,7 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(duid);
 
 		if (!cli) {
-			Log(Warning) << "LQ: Assignement for client duid=" << duid->getPlain() << " not found." << LogEnd;
+			Log(Warning) << "LQ: Assignment for client duid=" << duid->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this DUID found.", this));
 			isComplete = true;
 			return true;
@@ -330,7 +330,7 @@ bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgL
 		this->getAllLinkAddrBindings(q->getLinkAddr());
 
 		if (!this->blqClntsLst.count()) {
-			Log(Warning) << "LQ: Assignement for client link addr=" << link->getPlain() << " not found." << LogEnd;
+			Log(Warning) << "LQ: Assignment for client link addr=" << link->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
 			isComplete = true;
 			return true;
@@ -351,7 +351,7 @@ bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgL
 		SPtr<TAddrClient> cli = SrvAddrMgr().getClient(q->getLinkAddr());
 
 		if (!cli) {
-			Log(Warning) << "LQ: Assignement for client link addr=" << link->getPlain() << " not found." << LogEnd;
+			Log(Warning) << "LQ: Assignment for client link addr=" << link->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
 			isComplete = true;
 			return true;
@@ -396,12 +396,12 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	if (remoteId) {
 		getAllRemoteIdRelatedBindings(remoteId);
 	} else {
-		Log(Error) << "remoteId or link addrres not specified" << LogEnd;
+		Log(Error) << "remoteId or link address not specified" << LogEnd;
 		return false;
 	}
 
 	if (!blqClntAddrLst.count()) {
-		Log(Warning) << "LQ: Assignement for client RemoteId not found." << LogEnd;
+		Log(Warning) << "LQ: Assignment for client RemoteId not found." << LogEnd;
 		//Log(Warning) << "LQ: Assignement for client RemoteId=" << remoteId->getDUID()->getPlain() << " not found." << LogEnd;
 		Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this remote duid found.", this));
 		isComplete = true;
@@ -609,7 +609,7 @@ void TSrvMsgLeaseQueryReply::getAllRemoteIdRelatedBindings(SPtr<TOptVendorData> 
 	SrvAddrMgr().firstClient();
 	while (cli = SrvAddrMgr().getClient())
 	{
-		if (cli->getRemoteId()== remoteID)
+		if (cli->getRemoteId()->getVendorDataPlain() == remoteID->getVendorDataPlain())
 			blqClntsLst.append(cli);
 	}
 }
