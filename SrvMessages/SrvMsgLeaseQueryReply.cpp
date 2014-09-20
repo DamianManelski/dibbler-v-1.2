@@ -624,10 +624,11 @@ void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
 void  TSrvMsgLeaseQueryReply::getAllAddrBindings(SPtr<TIPv6Addr> addr) {
 	
 	SPtr<TAddrClient> cli;
-	while (cli = SrvAddrMgr().getClient()) {
-		if (cli->getIA() == addr) 
-			blqClntsLst.append(cli);
-	}
+	addr->getPlain();
+	SrvAddrMgr().firstClient();
+	cli = SrvAddrMgr().getClient(addr);
+	if (cli)
+		blqClntsLst.append(cli);
 }
 
 void TSrvMsgLeaseQueryReply::getAllClientExceptionByRemoteId(SPtr<TOptVendorData> remoteID) {
