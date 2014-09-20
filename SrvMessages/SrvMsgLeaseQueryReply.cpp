@@ -132,10 +132,12 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 
 	while (opt = queryMsg->getOption()) {
 
-		//opt->firstOption();
 		subOpt = (Ptr*)opt;
 		if (opt->getOptType() == OPTION_CLIENTID) {
-			count++;
+			send = queryByClientID(subOpt, queryMsg);
+			send = true;
+			++count;
+			break;
 		}
 		else if (opt->getOptType() == OPTION_LQ_QUERY) {
 
@@ -167,14 +169,6 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 		}
 	}
 
-	if (count == 1) {
-		queryMsg->firstOption();
-		opt = queryMsg->getOption();
-		opt->firstOption();
-		subOpt = (Ptr*)opt;
-		send = queryByClientID(subOpt, queryMsg);
-		send = true;
-	}
 
 	if (!count) {
 		Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required LQ_QUERY option missing.", this));
@@ -266,10 +260,10 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
     SPtr<TOpt> opt;
     SPtr<TOptDUID> duidOpt = 0;
     SPtr<TDUID> duid = 0;
-    SPtr<TIPv6Addr> link = q->getLinkAddr();
+    //SPtr<TIPv6Addr> link = q->getLinkAddr();
     
-    q->firstOption();
-    while ( opt = q->getOption() ) {
+    queryMsg->firstOption();
+    while ( opt = queryMsg->getOption() ) {
 	if (opt->getOptType() == OPTION_CLIENTID) {
 	    duidOpt = (Ptr*) opt;
 	    duid = duidOpt->getDUID();
@@ -550,7 +544,12 @@ void  TSrvMsgLeaseQueryReply::getAllDUIDBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr
 	int clntCount = 0, i=0;
 	SrvAddrMgr().firstClient();
 
-	while (cli = SrvAddrMgr().getClient(opt)) {
+
+	cli = SrvAddrMgr().getClient(opt);
+	if (cli)
+		blqClntsLst.append(cli);
+
+	/*while (cli = SrvAddrMgr().getClient(opt)) {
 		blqClntsLst.first();
 		while (ptr = blqClntsLst.get())
 		{
@@ -571,9 +570,7 @@ void  TSrvMsgLeaseQueryReply::getAllDUIDBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr
 				}
 			}
 		}
-
-	}
-
+	}*/
 }
 void  TSrvMsgLeaseQueryReply::getAllLinkAddrBindings(SPtr<TIPv6Addr> linkaddr) {
 	
@@ -627,7 +624,7 @@ void  TSrvMsgLeaseQueryReply::getAllAddrBindings(SPtr<TIPv6Addr> addr) {
 	addr->getPlain();
 	SrvAddrMgr().firstClient();
 	cli = SrvAddrMgr().getClient(addr);
-	if (cli)
+	if (cli) 
 		blqClntsLst.append(cli);
 }
 
