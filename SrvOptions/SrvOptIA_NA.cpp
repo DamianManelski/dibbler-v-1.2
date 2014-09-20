@@ -28,6 +28,7 @@
 #include "SrvAddrMgr.h"
 #include "SrvCfgMgr.h"
 #include "OptVendorData.h"
+#include "OptDUID.h"
 
 using namespace std;
 
