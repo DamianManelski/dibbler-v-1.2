@@ -133,13 +133,12 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 	while (opt = queryMsg->getOption()) {
 
 		subOpt = (Ptr*)opt;
-		if (opt->getOptType() == OPTION_CLIENTID) {
-			send = queryByClientID(subOpt, queryMsg);
-			send = true;
+		if (opt->getOptType() == OPTION_CLIENTID) 
+		{
 			++count;
-			break;
 		}
-		else if (opt->getOptType() == OPTION_LQ_QUERY) {
+		else if (opt->getOptType() == OPTION_LQ_QUERY) 
+		{
 
 			switch (subOpt->getQueryType()) {
 			case QUERY_BY_ADDRESS:
@@ -147,6 +146,10 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 				count++;
 				break;
 			case QUERY_BY_LINK_ADDRESS:
+				//TODO:Reorganize it better
+				if (count == 1){
+					break;
+				}
 				send = queryByLinkAddress(subOpt, queryMsg);
 				count++;
 				break;
@@ -169,6 +172,11 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 		}
 	}
 
+	if (count==1)
+	{
+		send = queryByClientID(subOpt, queryMsg);
+		send = true;
+	}
 
 	if (!count) {
 		Options.push_back(new TOptStatusCode(STATUSCODE_MALFORMEDQUERY, "Required LQ_QUERY option missing.", this));
@@ -245,7 +253,7 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		SPtr<TAddrClient> cli;
 		cli = SrvAddrMgr().getClient(addr->getAddr());
 		if (!cli) {
-			Log(Warning) << "LQ: Assignement for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
+			Log(Warning) << "LQ: Assignment for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
 			return true;
 		}
@@ -282,7 +290,7 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 
 		if (!this->blqClntsLst.count()) {
 			Log(Warning) << "BLQ: Assignment for client addr=" << duid->getPlain() << " not found." << LogEnd;
-			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this Client Id found.", this));
 			return true;
 		}
 		else {
@@ -406,7 +414,8 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		isComplete = true;
 		return true;
 	}
-	else {
+	else 
+	{
 		//append first match client's binding
 		blqClntsLst.first();
 		cli = blqClntsLst.get();
