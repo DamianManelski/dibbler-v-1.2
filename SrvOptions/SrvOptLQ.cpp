@@ -15,6 +15,7 @@
 #include "OptDUID.h"
 #include "Portable.h"
 #include "OptVendorSpecInfo.h"
+#include "OptVendorData.h"
 
 // --- TSrvOptLQ ---
 TSrvOptLQ::TSrvOptLQ(char * buf, int bufsize, TMsg* parent)
@@ -100,7 +101,7 @@ TSrvOptLQ::TSrvOptLQ(char *buf, int bufSize, TMsg *parent, int msgType)
 				subOptCount++;
 				break;
 			case OPTION_REMOTE_ID:
-				SubOptions.append(new TOptVendorSpecInfo(OPTION_REMOTE_ID, buf + pos, length, parent));
+				SubOptions.append(new TOptVendorData(OPTION_REMOTE_ID, buf + pos, length, parent));
 				QueryType = QUERY_BY_REMOTE_ID;
 				subOptCount++;
 				break;
