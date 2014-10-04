@@ -233,7 +233,6 @@ bool ReqTransMgr::CreateNewTCPSocket(char *dstAddr)
     Log(Info) << "Trying on global address..." << LogEnd;
     //get global address
     Iface->firstGlobalAddr();
-
     gl=Iface->getGlobalAddr();
 
     if(!gl) {
@@ -419,8 +418,10 @@ bool ReqTransMgr::SendTcpMsg()
             //memset(buf+1, 16, 0);
 			memset(buf+1, 0, 16);
             bufLen = 17;
-		
-            SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, CfgMgr->remoteId, (int)strlen(CfgMgr->remoteId), msg);
+			//TODO: Fix formatting of vendor data:		
+//            SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, CfgMgr->remoteId, (int)strlen(CfgMgr->remoteId), msg);
+			SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, "\x1\x2\x3\x4", (int)strlen("\x1\x2\x3\x4"), msg);
+			Log(Debug) << "dupa" << optRemoteId->getVendorDataPlain() << LogEnd;
             optRemoteId->storeSelf(buf+bufLen);
             bufLen += optRemoteId->getSize();
         } else {
