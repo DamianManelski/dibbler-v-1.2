@@ -124,7 +124,6 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                     }*/
 
                     tmpOptCode = parseMultiQueryCmd(argv[i]);
-                    Log( Debug) << "tmpCode" << tmpOptCode << LogEnd;
                     if(tmpOptCode>0) {
                         switch (tmpOptCode) {
 
@@ -174,10 +173,16 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                             break;
                         case QUERY_BY_REMOTE_ID:
                             remoteId = argv[++i];
-                            if (argc == i) {
+                            if (argc == i) 
+							{
                                 Log(Error) << "Unable to parse command-line. -bulk used, but actual remoteId is missing." << LogEnd;
                                 return false;
 							} i++;
+							if (argc == i)
+							{
+								Log(Error) << "Unable to parse command-line. -REMOTE_ID used, but required enterpriseNumber is missing." << LogEnd;
+								return false;
+							}
 							if ((!strncmp(argv[i], "-enterpriseNumber", 17)) && (strlen(argv[i]) == 17)) {
 								if (argc == i) {
 									Log(Error) << "Unable to parse command-line. -enterpriseNumber used, but actual address is missing." << LogEnd;
