@@ -155,8 +155,13 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                             if (argc == i) {
                                 Log(Error) << "Unable to parse command-line. -bulk used, but actual relay is missing." << LogEnd;
                                 return false;
-							}i++;							
-							if ((!strncmp(argv[i], "-linkAddr", 9)) && (strlen(argv[i]) == 9)) {
+							} i++;
+							if ((argc == i))
+							{
+								requestCount++;
+								continue;
+							}
+							if ((strlen(argv[i]) == 9) && (!strncmp(argv[i], "-linkAddr", 9))) {
 								if (argc == i) {
 									Log(Error) << "Unable to parse command line. Link address option specified without value of it" << LogEnd;
 									return false;
@@ -275,6 +280,7 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
     a->dstaddr = dstaddr;
     a->linkAddr = linkAddr;
     a->remoteId = remoteId;
+	a->relayId = relayId;
     a->enterpriseNumber = enterpriseNumber;
     a->multiplyQuery = multiplyQ;
     if(a->remoteId || a->enterpriseNumber) {
