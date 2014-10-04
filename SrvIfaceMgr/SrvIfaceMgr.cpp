@@ -470,6 +470,7 @@ SPtr<TSrvMsg> TSrvIfaceMgr::decodeRelayForw(SPtr<TIfaceIface> physicalIface,
 	TOptList echoListTbl[HOP_COUNT_LIMIT];
 	int relays = 0; // number of nested RELAY_FORW messages
 	SPtr<TOptVendorData> remoteID = 0;
+	SPtr<TOptDUID> relayId = 0;
 	SPtr<TIPv6Addr> relayLinkAddr;
 	SPtr<TOptOptionRequest> echo = 0;
 	SPtr<TOpt> gen = 0;
@@ -543,10 +544,12 @@ SPtr<TSrvMsg> TSrvIfaceMgr::decodeRelayForw(SPtr<TIfaceIface> physicalIface,
 				optRelayCnt++;
 				break;
 			case OPTION_REMOTE_ID:
-				gen = new TOptVendorData(OPTION_REMOTE_ID, buf, len, 0);
+				remoteID = new TOptVendorData(OPTION_REMOTE_ID, buf, len, 0);
+				gen =(SPtr<TOpt>) remoteID;
 				break;
 			case OPTION_RELAY_ID:
-				gen = new TOptDUID(OPTION_RELAY_ID, buf, len, 0);
+				relayId = new TOptDUID(OPTION_RELAY_ID, buf, len, 0);
+				gen = (SPtr<TOpt>)relayId;
 				break;
 			case OPTION_ERO:
 				Log(Debug) << "Echo Request received in RELAY_FORW." << LogEnd;
@@ -688,6 +691,12 @@ SPtr<TSrvMsg> TSrvIfaceMgr::decodeRelayForw(SPtr<TIfaceIface> physicalIface,
 		remoteID = 0;
 		remoteID = msg->getRemoteID();
 		PrintHex("RemoteID:", (uint8_t*)remoteID->getVendorData(), remoteID->getVendorDataLen());
+	}
+
+	if (relayId)
+	{
+		Log(Debug) << "RelayId received with DUID:" << relayId->getDUID()->getPlain() << LogEnd;
+		msg->setRelayID(relayId->getDUID());
 	}
 
 	return (Ptr*)msg;

@@ -82,6 +82,25 @@ bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid , SPtr<TIPv6Addr> clntAddr,
         if (!quiet) Log(Debug) << "Adding client (DUID=" << clntDuid->getPlain()
                                << ") to addrDB." << LogEnd;
         ptrClient = new TAddrClient(clntDuid);
+
+		if (relayData.relayRemoteId)
+		{
+			Log(Debug) << "Adding Remote ID (ID=" << relayData.relayRemoteId->getVendorDataPlain() << ") to addrDB." << LogEnd;
+			ptrClient->setRemoteId(relayData.relayRemoteId);
+		}
+		
+		if (relayData.relayDuid)
+		{
+			Log(Debug) << "Adding Relay DUID (DUID=" << relayData.relayDuid->getPlain() << ") to addrDB." << LogEnd;
+			ptrClient->setRelayId(relayData.relayDuid);
+		}
+		
+		if (relayData.relayLinkAddr)
+		{
+			Log(Debug) << "Adding Relay Link Addr (Addr=" << relayData.relayLinkAddr->getPlain() << ") to addrDB." << LogEnd;
+			ptrClient->setRelayLinkAddr(relayData.relayLinkAddr);
+		}
+		
         this->addClient(ptrClient);
     }
 
@@ -131,21 +150,10 @@ bool TSrvAddrMgr::addClntAddr(SPtr<TDUID> clntDuid, SPtr<TIPv6Addr> clntAddr,
 	SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,
 	bool quiet, SPtr<TOptVendorData> remoteId, SPtr<TDUID> relayId,SPtr<TIPv6Addr> relayLinkAdr)
 {
-
-	// find this client
-	SPtr <TAddrClient> ptrClient;
-	this->firstClient();
-	while (ptrClient = this->getClient()) {
-		if ((*ptrClient->getDUID()) == (*clntDuid))
-		{
-			if (remoteId != NULL)
-				ptrClient->setRemoteId(remoteId);
-			if (relayId != NULL)
-				ptrClient->setRelayId(relayId);
-			if (relayLinkAdr != NULL)
-				ptrClient->setRelayLinkAddr(relayLinkAdr);
-		}
-	}
+	relayData.relayDuid = relayId;
+	relayData.relayRemoteId = remoteId;
+	relayData.relayLinkAddr = relayLinkAdr;
+	
 	return 	addClntAddr(clntDuid, clntAddr, iface, IAID, T1, T2, addr, pref, valid, quiet);
 }
 //TSrvMsg*  parent = dynamic_cast<TSrvMsg*>  (this->Parent);

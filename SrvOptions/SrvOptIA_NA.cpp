@@ -352,7 +352,7 @@ bool TSrvOptIA_NA::assignAddr(SPtr<TIPv6Addr> addr, uint32_t pref, uint32_t vali
 
     /// @todo: remove get addr-params
     if (ptrClass->getAddrParams()) {
-        Log(Debug) << "Experimental: addr-params subotion added." << LogEnd;
+        Log(Debug) << "Experimental: addr-params suboption added." << LogEnd;
         optAddr->addOption((Ptr*)ptrClass->getAddrParams());
     }
 
@@ -366,9 +366,16 @@ bool TSrvOptIA_NA::assignAddr(SPtr<TIPv6Addr> addr, uint32_t pref, uint32_t vali
     // configure this IA
     T1_ = ptrClass->getT1(T1_);
     T2_ = ptrClass->getT2(T2_);
+	
+	//Assign remoteId, relayId and RelayLinkAddr
+	TSrvMsg*  parent = dynamic_cast<TSrvMsg*>(this->Parent);	
+	SPtr<TOptVendorData> remote = parent->getRemoteID();
+	SPtr<TDUID> relayId = parent->getRelayId();
+	SPtr<TIPv6Addr> relayLinkAddr = parent->getRelayLinkAddr();
 
     // register this address as used by this client
-    SrvAddrMgr().addClntAddr(ClntDuid, ClntAddr, Iface, IAID_, T1_, T2_, addr, pref, valid, quiet);
+	SrvAddrMgr().addClntAddr(ClntDuid, ClntAddr, Iface, IAID_, T1_, T2_, addr, pref, valid, quiet, remote, relayId, relayLinkAddr);
+    //SrvAddrMgr().addClntAddr(ClntDuid, ClntAddr, Iface, IAID_, T1_, T2_, addr, pref, valid, quiet);
     SrvCfgMgr().addClntAddr(this->Iface, addr);
 
     return true;

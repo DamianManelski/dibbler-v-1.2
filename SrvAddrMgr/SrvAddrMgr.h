@@ -42,6 +42,14 @@ class TSrvAddrMgr : public TAddrMgr
 	int prefixLen; // just for prefixes
     };
 
+	struct RelayData
+	{
+		SPtr<TDUID> relayDuid;
+		SPtr<TOptVendorData> relayRemoteId;
+		SPtr<TIPv6Addr> relayLinkAddr;
+	};
+	RelayData relayData;
+
     ~TSrvAddrMgr();
 
     // IA address management
@@ -50,7 +58,7 @@ class TSrvAddrMgr : public TAddrMgr
                      SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,
                      bool quiet);
 
-	//based on remoteid
+	//based on remoteId
 	bool addClntAddr(SPtr<TDUID> clntDuid, SPtr<TIPv6Addr> clntAddr,
 		int iface, unsigned long IAID, unsigned long T1, unsigned long T2,
 		SPtr<TIPv6Addr> addr, unsigned long pref, unsigned long valid,

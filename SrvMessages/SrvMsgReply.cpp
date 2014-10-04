@@ -43,6 +43,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgConfirm> confirm)
     copyRelayInfo((Ptr*)confirm);
     copyAAASPI((Ptr*)confirm);
     copyRemoteID((Ptr*)confirm);
+	copyRelayId((Ptr*)confirm);
+	copyRelayLinkAddress((Ptr*)confirm);
 
     if (!handleConfirmOptions( confirm->getOptLst() )) {
         IsDone = true;
@@ -181,7 +183,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
     copyRelayInfo( (Ptr*)decline );
     copyAAASPI( (Ptr*)decline );
     copyRemoteID( (Ptr*)decline );
-
+	copyRelayId((Ptr*)decline);
+	copyRelayLinkAddress((Ptr*)decline);
     SPtr<TOpt> ptrOpt;
 
     SPtr<TAddrClient> ptrClient = SrvAddrMgr().getClient(ClientDUID);
@@ -291,7 +294,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
     copyRelayInfo( (Ptr*)rebind );
     copyAAASPI( (Ptr*)rebind );
     copyRemoteID( (Ptr*)rebind );
-
+	copyRelayId((Ptr*)rebind);
+	copyRelayLinkAddress((Ptr*)rebind);
     unsigned long addrCount=0;
     SPtr<TOpt> ptrOpt;
 
@@ -361,6 +365,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRelease> release)
     copyRelayInfo((Ptr*)release);
     copyAAASPI((Ptr*)release);
     copyRemoteID((Ptr*)release);
+	copyRelayId((Ptr*)release);
+	copyRelayLinkAddress((Ptr*)release);
 
     /// @todo When the server receives a Release message via unicast from a client
     /// to which the server has not sent a unicast option, the server
@@ -538,6 +544,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
     copyRelayInfo((Ptr*)renew);
     copyAAASPI((Ptr*)renew);
     copyRemoteID((Ptr*)renew);
+	copyRelayId((Ptr*)renew);
+	copyRelayLinkAddress((Ptr*)renew);
 
     // uncomment this to test REBIND
     //IsDone = true;
@@ -609,6 +617,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRequest> request)
     copyRelayInfo( (Ptr*)request );
     copyAAASPI( (Ptr*)request );
     copyRemoteID( (Ptr*)request );
+	copyRelayId((Ptr*)request);
+	copyRelayLinkAddress((Ptr*)request);
 
     processOptions((Ptr*)request, false); // be verbose
 
@@ -639,6 +649,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgSolicit> solicit)
     copyRelayInfo( (Ptr*)solicit );
     copyAAASPI( (Ptr*)solicit );
     copyRemoteID( (Ptr*)solicit );
+	copyRelayId((Ptr*)solicit);
+	copyRelayLinkAddress((Ptr*)solicit);
 
     processOptions((Ptr*) solicit, false);
 
@@ -665,6 +677,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
     copyRelayInfo((Ptr*)infRequest);
     copyAAASPI((Ptr*)infRequest);
     copyRemoteID((Ptr*)infRequest);
+	copyRelayId((Ptr*)infRequest);
+	copyRelayLinkAddress((Ptr*)infRequest);
 
     Log(Debug) << "Received INF-REQUEST requesting " << showRequestedOptions(ORO) << "." << LogEnd;
 

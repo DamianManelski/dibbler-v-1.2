@@ -762,6 +762,16 @@ void TSrvMsg::copyRemoteID(SPtr<TSrvMsg> q) {
   this->RemoteID = q->getRemoteID();
 }
 
+void TSrvMsg::copyRelayLinkAddress(SPtr<TSrvMsg> q)
+{
+	this->RelayLinkAddr = q->getRelayLinkAddr();
+}
+
+void TSrvMsg::copyRelayId(SPtr<TSrvMsg> q)
+{
+	this->RelayID = q->getRelayId();
+}
+
 bool TSrvMsg::copyClientID(SPtr<TMsg> donor) {
     SPtr<TOpt> x = donor->getOption(OPTION_CLIENTID);
     if (x) {
@@ -783,6 +793,8 @@ SPtr<TIPv6Addr> TSrvMsg::getClientPeer()
 void TSrvMsg::copyRelayInfo(SPtr<TSrvMsg> q) {
     RelayInfo_ = q->RelayInfo_;
 }
+
+
 
 
 /**
@@ -995,7 +1007,7 @@ bool TSrvMsg::appendMandatoryOptions(SPtr<TOptOptionRequest> oro, bool clientID 
  * @param iface
  * @param reqOpts
  *
- * @return true, if any options (conveying configuration paramter) has been appended
+ * @return true, if any options (conveying configuration parameter) has been appended
  */
 bool TSrvMsg::appendRequestedOptions(SPtr<TDUID> duid, SPtr<TIPv6Addr> addr,
                                      int iface, SPtr<TOptOptionRequest> reqOpts)

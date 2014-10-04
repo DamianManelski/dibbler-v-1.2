@@ -32,6 +32,9 @@ TSrvMsgAdvertise::TSrvMsgAdvertise(SPtr<TSrvMsg> solicit)
     copyRelayInfo(solicit);
     copyAAASPI(solicit);
     copyRemoteID(solicit);
+	copyRelayId(solicit);
+	copyRelayLinkAddress(solicit);
+
 
     if (!handleSolicitOptions(solicit)) {
         IsDone = true;

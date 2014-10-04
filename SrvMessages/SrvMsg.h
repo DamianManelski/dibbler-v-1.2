@@ -48,6 +48,8 @@ public:
     void copyAAASPI(SPtr<TSrvMsg> q);
     void copyRemoteID(SPtr<TSrvMsg> q);
     bool copyClientID(SPtr<TMsg> donor);
+	void copyRelayId(SPtr<TSrvMsg> q);
+	void copyRelayLinkAddress(SPtr<TSrvMsg> q);
 
     void appendAuthenticationOption(SPtr<TDUID> duid);
     bool appendMandatoryOptions(SPtr<TOptOptionRequest> oro, bool includeClientID = true);
