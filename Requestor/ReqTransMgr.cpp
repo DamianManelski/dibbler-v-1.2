@@ -437,17 +437,8 @@ bool ReqTransMgr::SendTcpMsg()
     break;
     }
 
-
-	SPtr<TDUID> clientDuid;
-	if (CfgMgr->clientId)
-	{
-		clientDuid = new TDUID(CfgMgr->clientId);
-	}
-	else
-	{
-		clientDuid = new TDUID("00:01:00:01:0e:ec:13:db:00:02:02:02:02:02");
-	}
-    
+	//fixed requestor DUID
+	SPtr<TDUID> clientDuid = new TDUID("00:01:00:01:0e:ec:13:db:00:02:02:02:02:02");
 
     SPtr<TOpt> opt = new TOptDUID(OPTION_CLIENTID, clientDuid, msg);
     msg->addOption(opt);
