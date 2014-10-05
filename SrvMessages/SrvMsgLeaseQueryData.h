@@ -17,14 +17,18 @@
 #include "SrvOptLQ.h"
 #include "AddrClient.h"
 
-class TSrvMsgLeaseQueryData : public TSrvMsgLeaseQueryReply
+class TSrvMsgLeaseQueryData : public TSrvMsg
 {
+	//friend class TSrvMsgLeaseQueryReply;
+
   public:
     TSrvMsgLeaseQueryData(SPtr<TSrvMsgLeaseQuery> query);
 
+	bool isComplete = false;
     bool check() {return true; };
     void doDuties() { };
     std::string getName() const;
+	void appendClientData(SPtr<TAddrClient> cli);
     ~TSrvMsgLeaseQueryData();
 };
 

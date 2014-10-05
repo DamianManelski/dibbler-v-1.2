@@ -47,6 +47,8 @@ TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
 }
 
 
+
+
 /** 
  * 
  * 
@@ -189,18 +191,25 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 
 	if (!isComplete) {
 		SPtr<TSrvMsgLeaseQueryData> lqData;
-		while (!lqData->isComplete) {
+		do{
 			lqData = new TSrvMsgLeaseQueryData(queryMsg);
 			if (lqData){
 				isBlqDataExist = true;
-				this->send();
+				blqClntsLst.first();
+				lqData->appendClientData(blqClntsLst.getFirst());
+				blqClntsLst.delFirst();
+				lqData->send();
+				if (blqClntsLst.count() == 0)
+					lqData->isComplete = true;
 			}
-		}
+		} while (!lqData->isComplete);
 	}
 
-	if (isBlqDataExist){
+	if (isBlqDataExist)
+	{
 		SPtr<TSrvMsgLeaseQueryDone> lqDone;
 		lqDone = new TSrvMsgLeaseQueryDone(queryMsg);
+		lqDone->send();
 	}
 	return true;
 }
@@ -239,7 +248,11 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)
+			{
+				//remove this client from queue:
+				blqClntsLst.delFirst();
 				isComplete = false;
+			}
 		}
 	} else {
 
@@ -293,7 +306,11 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)
+			{
+				//remove this client from queue:
+				blqClntsLst.delFirst();
 				isComplete = false;
+			}
 		}
 	}
 	else {
@@ -343,7 +360,11 @@ bool TSrvMsgLeaseQueryReply::queryByLinkAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgL
 			appendClientData(cli);
 
 			if (blqClntsLst.count() > 1)
+			{
+				//remove this client from queue:
+				blqClntsLst.delFirst();
 				isComplete = false;
+			}
 		}
 	}
 	else {
@@ -408,7 +429,12 @@ bool TSrvMsgLeaseQueryReply::queryByRemoteID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 		appendClientData(cli);
 
 		if (blqClntsLst.count() > 1)
+		{
+			//remove this client from queue:
+			blqClntsLst.delFirst();
 			isComplete = false;
+		}
+			
 	}
 	
     return true;
@@ -463,7 +489,11 @@ bool TSrvMsgLeaseQueryReply::queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		appendClientData(cli);
 
 		if (blqClntsLst.count() > 1)
+		{
+			//remove this client from queue:
+			blqClntsLst.delFirst();
 			isComplete = false;
+		}
 	}
    
     return true;
