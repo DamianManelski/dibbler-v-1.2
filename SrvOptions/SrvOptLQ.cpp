@@ -110,6 +110,11 @@ TSrvOptLQ::TSrvOptLQ(char *buf, int bufSize, TMsg *parent, int msgType)
 				QueryType = QUERY_BY_RELAY_ID;
 				subOptCount++;
 				break;
+			case OPTION_CLIENTID:
+				SubOptions.append(new TOptDUID(OPTION_CLIENTID, buf + pos, length, parent));
+				QueryType = QUERY_BY_CLIENT_ID;
+				subOptCount++;
+				break;
 			default:
 				Log(Warning) << "Not supported option " << code << " received in LQ_QUERY option." << LogEnd;
 			}

@@ -135,21 +135,20 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 		subOpt = (Ptr*)opt;
 		if (opt->getOptType() == OPTION_CLIENTID) 
 		{
-			++count;
+			continue;
 		}
 		else if (opt->getOptType() == OPTION_LQ_QUERY) 
 		{
-
 			switch (subOpt->getQueryType()) {
 			case QUERY_BY_ADDRESS:
 				send = queryByAddress(subOpt, queryMsg);
 				count++;
 				break;
+			case QUERY_BY_CLIENT_ID:
+				send = queryByClientID(subOpt, queryMsg);
+				count++;
+				break;
 			case QUERY_BY_LINK_ADDRESS:
-				//TODO:Reorganize it better
-				if (count == 1){
-					break;
-				}
 				send = queryByLinkAddress(subOpt, queryMsg);
 				count++;
 				break;
@@ -170,12 +169,6 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 			}
 			subOpt = 0;
 		}
-	}
-
-	if (count==1)
-	{
-		send = queryByClientID(subOpt, queryMsg);
-		send = true;
 	}
 
 	if (!count) {
@@ -544,9 +537,13 @@ void  TSrvMsgLeaseQueryReply::getAllRelayLinkAddrRelatedBindings(SPtr<TIPv6Addr>
 		if (cli)
 		{
 			SPtr<TIPv6Addr> relayLinkAddr = cli->getRelayLinkAddr();
-			//check if address is in subnet
-			if (relayLinkAddr->getPlain() == linkaddr->getPlain())
-				blqClntsLst.append(cli);
+			if (relayLinkAddr)
+			{
+				Log(Debug) << "Looking for:" << linkaddr->getPlain() << LogEnd;
+				Log(Debug) << "Actual:" << relayLinkAddr->getPlain() << LogEnd;
+				if (relayLinkAddr->getPlain() == linkaddr->getPlain())
+					blqClntsLst.append(cli);
+			}			
 		}
 	}	
 }
