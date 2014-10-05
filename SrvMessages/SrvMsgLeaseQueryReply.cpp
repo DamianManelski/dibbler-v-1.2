@@ -207,8 +207,7 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 
 	if (isBlqDataExist)
 	{
-		SPtr<TSrvMsgLeaseQueryDone> lqDone;
-		lqDone = new TSrvMsgLeaseQueryDone(queryMsg);
+		SPtr<TSrvMsgLeaseQueryDone> lqDone = new TSrvMsgLeaseQueryDone(queryMsg);
 		lqDone->send();
 	}
 	return true;
