@@ -258,13 +258,17 @@ int TIfaceMgr::select(unsigned long time, char *buf,
                     if(iface->addTcpSocket(sock->getAddr(),sock->getPort(),sock->getFD()))
                             this->isTcpSet = true;
                 } else {
-                    result = sock_recv_tcp(iface->getSocket()->getMaxFD(), buf, bufsize, flags);
+					if (!FD_ISSET(sock->getMaxFD(), &fds))
+					{
+						sock->setMaxFD(sock->getFD());
+					}
+					int descriptor = iface->getSocket()->getMaxFD();
+					result = sock_recv_tcp(descriptor, buf, bufsize, flags);
                 }
             } else {
                 result = sock_recv_tcp(sock->getFD(), buf, bufsize, flags);
             }
             this->isTcp = true;
-
         }
 
     } else {
@@ -537,7 +541,7 @@ void TIfaceMgr::closeTcpSocket() {
 	fd_set fds;
 	fds = *TIfaceSocket::getFDS();
 	SPtr<TIfaceSocket> sock;
-	Log(Debug) << "Closing current TCP socket." << LogEnd;
+	
 
 	while (!found) {
 		sockId = sock->getMaxFD();
@@ -554,6 +558,7 @@ void TIfaceMgr::closeTcpSocket() {
 
 	//FD_CLR(sockId, &fds);
 	sock->terminate_tcp(sockId, 2);
+	Log(Debug) << "Closing current TCP socket with ID" << sockId <<  LogEnd;
 	//this->delSocket(sockId);
 	
 	firstIface();

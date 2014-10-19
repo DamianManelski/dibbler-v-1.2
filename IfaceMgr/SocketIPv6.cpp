@@ -419,6 +419,11 @@ void TIfaceSocket::printError(int error, char * iface, int ifaceid, SPtr<TIPv6Ad
     }
 }
 
+void TIfaceSocket::setMaxFD(int socketDescriptior)
+{
+	this->MaxFD = socketDescriptior;
+}
+
 // --------------------------------------------------------------------
 // --- operators ------------------------------------------------------
 // --------------------------------------------------------------------

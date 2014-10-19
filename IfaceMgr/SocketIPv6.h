@@ -46,6 +46,7 @@ class TIfaceSocket {
     int recv_tcp(char * buf,SPtr<TIPv6Addr> addr);
     int terminate_tcp(int fd, int how);
     int accept(SPtr<TIPv6Addr> peer, char *peerPlainAddr);
+	void setMaxFD(int socketDescriptior);
     // ---get info---
     inline static int getCount() { return Count; }
     int getFD();
