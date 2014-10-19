@@ -225,9 +225,10 @@ bool ReqTransMgr::CreateNewTCPSocket(char *dstAddr)
 
     Log(Info) << "llAddr:"<< llAddr << LogEnd;
     Log(Info) << "dstAddr:"<< dstAddr << LogEnd;
-   // SPtr<TIPv6Addr> ll = new TIPv6Addr(llAddr);
+    SPtr<TIPv6Addr> ll = new TIPv6Addr(llAddr);
     SPtr<TIPv6Addr> gl = new TIPv6Addr();
-
+	Log(Info) << "Link local address£" << ll->getPlain()<< LogEnd;
+	
 
     Log(Crit) << "TCP Socket creation or binding failed (link-local address)." << LogEnd;
     Log(Info) << "Trying on global address..." << LogEnd;
@@ -292,14 +293,6 @@ bool ReqTransMgr::CreateNewTCPSocket(char *dstAddr)
 
 bool ReqTransMgr::SendTcpMsg()
 {
-
-    // bulk leasequery assumed five types of queries:
-	//by Address
-    //by ClientId - include DUID option
-    //by Relay Id
-    //Link Address
-    //by Remote Id
-
     SPtr<TIPv6Addr> dstAddr;
     if (!CfgMgr->dstaddr) {
         dstAddr = new TIPv6Addr("ff02::1:2", true);
@@ -421,7 +414,6 @@ bool ReqTransMgr::SendTcpMsg()
 			//TODO: Fix formatting of vendor data:		
 //            SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, CfgMgr->remoteId, (int)strlen(CfgMgr->remoteId), msg);
 			SPtr<TOptVendorData> optRemoteId = new TOptVendorData(OPTION_REMOTE_ID, CfgMgr->enterpriseNumber, "\x1\x2\x3\x4", (int)strlen("\x1\x2\x3\x4"), msg);
-			Log(Debug) << "dupa" << optRemoteId->getVendorDataPlain() << LogEnd;
             optRemoteId->storeSelf(buf+bufLen);
             bufLen += optRemoteId->getSize();
         } else {
@@ -462,7 +454,7 @@ bool ReqTransMgr::SendTcpMsg()
      Log(Info) << "LQ_QUERY message has been send." << LogEnd;
     return true;
 }
-bool ReqTransMgr::WaitForRsp()
+bool ReqTransMgr::WaitForRsp(int &messageType)
 {
     char buf[1024];
     int bufLen = 1024, stype;
@@ -484,7 +476,7 @@ bool ReqTransMgr::WaitForRsp()
     if (sockFD>0) {
         Log(Info) << "Received " << bufLen << " bytes response." << LogEnd;
 		if (stype == SOCK_STREAM){
-			PrintTcpRsp(buf, bufLen);
+			PrintTcpRsp(buf, bufLen,messageType);
 		} else {
 			PrintRsp(buf, bufLen);
 		}
@@ -510,7 +502,7 @@ void ReqTransMgr::PrintRsp(char * buf, int bufLen)
     ParseOpts(msgType, 0, buf+4, bufLen-4);
 }
 
-void ReqTransMgr::PrintTcpRsp(char *buf, int bufLen)
+void ReqTransMgr::PrintTcpRsp(char *buf, int bufLen, int &messageType)
 {
     if (bufLen < 6) {
         Log(Error) << "Unable to print message: truncated (min. len=6 required)." << LogEnd;
@@ -518,6 +510,7 @@ void ReqTransMgr::PrintTcpRsp(char *buf, int bufLen)
 
     //int msgSize = buf[0]*256 + buf[0];
     int msgType = buf[2];
+	messageType = msgType;
     int transId = buf[1]*256*256 + 256*buf[2] + buf[3];
 
     Log(Info) << "MsgType: " << msgType << ", transID=0x" << hex << transId << dec << LogEnd;
@@ -536,11 +529,7 @@ bool ReqTransMgr::ParseOpts(int msgType, int recurseLevel, char * buf, int bufLe
     bool print = true;
     unsigned short tmpl=0;
     int pos2=0;
-   /* for(pos2=0;pos2<bufLen;pos2++) {
-        tmpl = buf[pos2];
-        Log(Debug) << "pos"<<pos2<<":"<<tmpl <<LogEnd;
-        tmpl=0;
-    }*/
+   
     while (pos<bufLen) {
 	if (pos+4>bufLen) {
 	    Log(Error) << linePrefix << "Message " << msgType << " truncated. There are " << (bufLen-pos) 

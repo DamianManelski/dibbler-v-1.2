@@ -85,7 +85,12 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
 	a->remoteId = 0;
 	a->requestCount = 0;
 	a->timeout = 0;
-		
+	
+	if (argc == 1)
+	{
+		Log(Error) << "Unable to parse command-line. No parameters specified." << LogEnd;
+		return false;
+	}
 
     int enterpriseNumber =0, tmpOptCode=0, requestCount=0;
     bool multiplyQ = false;
@@ -345,7 +350,7 @@ int initWin()
 
 int main(int argc, char *argv[])
 {
-    int i=0;
+    int actualRequestNumber=0;
     ReqCfgMgr a;
 
     initWin();
@@ -393,7 +398,6 @@ int main(int argc, char *argv[])
 
 
     //bulk's part
-    //TODO: if statement
     if (a.multiplyQuery) {
 
         if(!transMgr->CreateNewTCPSocket(a.dstaddr)) {
@@ -402,30 +406,82 @@ int main(int argc, char *argv[])
         }
 
         Log(Debug) << "RequestCount:" << a.requestCount << LogEnd;
-        while (i != a.requestCount ) {
+		while (actualRequestNumber != a.requestCount) {
 
-            if (!EmptyBulkQueue(&a)) {
-                Log(Debug) << "Cannot set queryType (EmptyBulkQueue failed)" << endl;
-            } else {
-                Log(Debug) <<  "query type has been set" << endl;
-            }
+			if (!EmptyBulkQueue(&a)) {
+				Log(Debug) << "Cannot set queryType (EmptyBulkQueue failed)" << endl;
+			}
+			else {
+				Log(Debug) << "query type has been set" << endl;
+			}
 
-            if(!transMgr->SendTcpMsg()) {
-                Log(Crit) << "Aborted. TCP message transmission failed." << LogEnd;
-                transMgr->TerminateTcpConn();
-                return LOWLEVEL_ERROR_SOCKET;
-            }
+			if (!transMgr->SendTcpMsg()) {
+				Log(Crit) << "Aborted. TCP message transmission failed." << LogEnd;
+				transMgr->TerminateTcpConn();
+				return LOWLEVEL_ERROR_SOCKET;
+			}
 
-            if (!transMgr->WaitForRsp()) {
-                Log(Crit) << "Aborted. Cannot receive any data, WaitForResponse function failed." << LogEnd;
-                //transMgr->RetryConnection();
-                return LOWLEVEL_ERROR_SOCKET;
-            } i++;
+			int messageType = 0;
+			int waitingCount = 0;
+			bool ifLqReplyMsgReceived = false;
+			bool ifLqDataMsgReceived = false;
+			bool ifLqDoneMsgReceived = false;
+			do {
+
+					if (transMgr->WaitForRsp(messageType))
+					{
+						if (messageType == LEASEQUERY_REPLY_MSG)
+						{
+							if (waitingCount > 0)
+							{
+								Log(Crit) << "Aborted. Leasequery Reply message has been received second time - something is wrong." << LogEnd;
+								break;
+							}
+							else
+							{
+								Log(Debug) << "Leasequery Reply message has been received." << LogEnd;
+								ifLqReplyMsgReceived = true;
+							}
+						}
+						if (messageType == LEASEQUERY_DATA_MSG)
+						{
+							if (waitingCount > 0)
+							{
+								Log(Debug) << "Leasequery Data message has been received." << LogEnd;
+								ifLqDataMsgReceived = true;
+							}
+							else if (ifLqDoneMsgReceived || !ifLqReplyMsgReceived)
+							{
+								Log(Crit) << "Aborted. Leasequery Data messages received in wrong order of msg types - something is wrong." << LogEnd;
+								break;
+							}
+						}
+						if (messageType == LEASEQUERY_DONE_MSG)
+						{
+							if (ifLqDataMsgReceived && ifLqReplyMsgReceived)
+							{
+								Log(Debug) << "Leasequery Done message has been received." << LogEnd;
+								ifLqDoneMsgReceived = true;
+							}
+							else
+							{
+								Log(Crit) << "Leasequery Done msg has been recived in wrong types of msgs - something is wrong." << LogEnd;
+								break;
+							}
+
+						}
+					}
+					else
+					{
+						Log(Crit) << "Aborted. Cannot receive any data, WaitForResponse function failed." << LogEnd;
+						//transMgr->RetryConnection();
+						return LOWLEVEL_ERROR_SOCKET;
+					}
+					waitingCount++;
+			} while ((ifLqDataMsgReceived && !ifLqDoneMsgReceived) || (ifLqReplyMsgReceived && waitingCount < 2) || waitingCount == 10);
+				actualRequestNumber++;
         }
-
-        transMgr->TerminateTcpConn();
     }
-
     delete transMgr;
 	delete ifaceMgr;
     return LOWLEVEL_NO_ERROR;
