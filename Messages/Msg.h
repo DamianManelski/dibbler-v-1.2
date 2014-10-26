@@ -22,7 +22,6 @@ class TMsg;
 #include "IPv6Addr.h"
 #include "Opt.h"
 #include "Key.h"
-//#include "KeyList.h"
 #include "ScriptParams.h"
 
 // Hey! It's grampa of all messages
@@ -58,7 +57,6 @@ class TMsg
     long getType();
     long getTransID();
     TOptList & getOptLst();
-    SPtr<TIPv6Addr> getAddr(); /// @todo: rename to getPeerAddr()
     int getIface();
     virtual ~TMsg();
     bool isDone();
@@ -66,7 +64,9 @@ class TMsg
 
     // useful auth stuff below
     void calculateDigests(char* buffer,  size_t len);
-    void setAuthDigestPtr(char* ptr, unsigned len); /// @todo: remove from here (and move to AUTH option)
+
+    /// @todo: remove from here (and move to AUTH option)
+    void setAuthDigestPtr(char* ptr, unsigned len);
     bool loadAuthKey();
     void setAuthKey(const TKey& key);
     TKey getAuthKey();
@@ -80,6 +80,10 @@ class TMsg
     // notify scripts stuff
     void* getNotifyScriptParams();
     bool Bulk;
+    SPtr<TIPv6Addr> getRemoteAddr();
+
+    void setLocalAddr(SPtr<TIPv6Addr> myaddr);
+    SPtr<TIPv6Addr> getLocalAddr();
 
   protected:
     int MsgType;
@@ -98,7 +102,14 @@ class TMsg
     bool IsDone; // Is this transaction done?
     int Iface;   // logical interface (for direct messages it equals PhysicalIface
                  // for relayed messages Iface points to relayX, PhysicalInterface to ethX)
-    SPtr<TIPv6Addr> PeerAddr; // server/client address from/to which message was received/should be sent
+
+
+    /// Address of the corresponding node (received from or to be sent to)
+    /// @todo: rename to RemoteAddr_
+    SPtr<TIPv6Addr> PeerAddr_;
+
+    /// Address the packet was received on
+    SPtr<TIPv6Addr> LocalAddr_;
 
     // Auth stuff
     uint32_t SPI_; // Key identifier

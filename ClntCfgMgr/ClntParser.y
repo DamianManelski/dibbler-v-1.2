@@ -56,15 +56,16 @@ bool StartIfaceDeclaration(const std::string& ifaceName);                   \
 bool StartIfaceDeclaration(int ifindex);                                    \
 bool EndIfaceDeclaration();                                                 \
 void EmptyIface();                                                          \
-void StartIADeclaration(bool aggregation);                                  \
+bool StartIADeclaration(bool aggregation);                                  \
 void EndIADeclaration();                                                    \
-void StartPDDeclaration();                                                  \
+bool StartPDDeclaration();                                                  \
 bool EndPDDeclaration();                                                    \
 void EmptyIA();                                                             \
 void EmptyAddr();                                                           \
 TClntCfgMgr * CfgMgr;                                                       \
 bool iaidSet;                                                               \
 unsigned int iaid;                                                          \
+unsigned int AddrCount_;                                                    \
 virtual ~ClntParser();                                                      \
 EDUIDType DUIDType;                                                         \
 int DUIDEnterpriseNumber;                                                   \
@@ -79,6 +80,7 @@ SPtr<TDUID> DUIDEnterpriseID;
     ParserOptStack.getLast();                                               \
     DUIDType = DUID_TYPE_NOT_DEFINED;                                       \
     DUIDEnterpriseID = 0;                                                   \
+    AddrCount_ = 0;                                                         \
     CfgMgr = 0;                                                             \
     iaidSet = false;                                                        \
     iaid = 0xffffffff;                                                      \
@@ -118,7 +120,8 @@ namespace std
 %token <ival>       INTNUMBER_
 %token <addrval>    IPV6ADDR_
 %token <duidval>    DUID_
-%token STRICT_RFC_NO_ROUTING_, SKIP_CONFIRM_, OBEY_RA_BITS_
+%token STRICT_RFC_NO_ROUTING_
+%token SKIP_CONFIRM_, OBEY_RA_BITS_
 %token PD_, PREFIX_, DOWNLINK_PREFIX_IFACES_
 %token DUID_TYPE_, DUID_TYPE_LLT_, DUID_TYPE_LL_, DUID_TYPE_EN_
 %token AUTH_METHODS_, AUTH_PROTOCOL_, AUTH_ALGORITHM_, AUTH_REPLAY_, AUTH_REALM_
@@ -207,7 +210,7 @@ IAOptionDeclaration
 : T1Option
 | T2Option
 | RapidCommitOption
-| ADDRESOptionDeclaration
+| AddressParameter
 | ExperimentalAddrParams
 ;
 
@@ -319,12 +322,20 @@ TADeclaration
 /////////////////////////////////////////////////////////////////////////////
 :TA_
 {
-    //Log(Crit) << "TA without params." << LogEnd;
+    if (!ParserOptStack.getLast()->getStateful()) {
+        Log(Crit) << "Attempted to use TA (stateful option) in stateless mode." << LogEnd;
+        YYABORT;
+    }
+
     this->ClntCfgTALst.append( new TClntCfgTA() ); // append new TA
 }
 |TA_ '{'
 {
-    //Log(Crit) << "TA with params started." << LogEnd;
+    if (!ParserOptStack.getLast()->getStateful()) {
+        Log(Crit) << "Attempted to use TA (stateful option) in stateless mode." << LogEnd;
+        YYABORT;
+    }
+
     this->ClntCfgTALst.append( new TClntCfgTA() ); // append new TA
     this->iaidSet = false;
 }
@@ -332,12 +343,15 @@ TADeclarationList
 {
     if (this->iaidSet)
 	this->ClntCfgTALst.getLast()->setIAID(this->iaid);
-    //Log(Crit) << "TA with params ended." << LogEnd;
 }
 '}'
 |TA_ '{' '}'
 {
-    //Log(Crit) << "TA without params." << LogEnd;
+    if (!ParserOptStack.getLast()->getStateful()) {
+        Log(Crit) << "Attempted to use TA (stateful option) in stateless mode." << LogEnd;
+        YYABORT;
+    }
+
     this->ClntCfgTALst.append( new TClntCfgTA() ); // append new TA
 }
 ;
@@ -362,7 +376,9 @@ IADeclaration
 /////////////////////////////////////////////////////////////////////////////
 :IA_ '{'
 {
-    StartIADeclaration(false);
+    if (!StartIADeclaration(false)) {
+        YYABORT;
+    }
 }
 IADeclarationList '}'
 {
@@ -371,7 +387,9 @@ IADeclarationList '}'
 
 |IA_ Number '{'
 {
-    StartIADeclaration(false);
+    if (!StartIADeclaration(false)) {
+        YYABORT;
+    }
     this->iaid = $2;
 }
 IADeclarationList '}'
@@ -386,7 +404,9 @@ IADeclarationList '}'
 /////////////////////////////////////////////////////////////////////////////
 |IA_ '{' '}'
 {
-    StartIADeclaration(true);
+    if (!StartIADeclaration(true)) {
+        YYABORT;
+    }
     EndIADeclaration();
 }
 
@@ -395,13 +415,17 @@ IADeclarationList '}'
 /////////////////////////////////////////////////////////////////////////////
 |IA_
 {
-    StartIADeclaration(true);
+    if (!StartIADeclaration(true)) {
+        YYABORT;
+    }
     EndIADeclaration();
 }
 
 |IA_ Number
 {
-    StartIADeclaration(true);
+    if (!StartIADeclaration(true)) {
+        YYABORT;
+    }
     EndIADeclaration();
     Log(Info) << "Setting IAID to " << $2 << LogEnd;
     ClntCfgIALst.getLast()->setIAID($2);
@@ -416,80 +440,100 @@ IADeclarationList
 |IADeclarationList ADDRESDeclaration
 ;
 
+// This covers the following declarations:
+// 1. address (send an empty address)
+// 2. address 2001:db8::1 (send this specific address)
+// 3. address 5 (send 5 addresses)
+// 4. address { ... } (send an empty address with the following parameters)
+// 5. address 2001:d8b::1 { ... } (spend specific address with the following parameters)
+// 6. address 5 { ... } (send 5 addresses with the following parameters)
 ADDRESDeclaration
-: ADDRESS_KEYWORD_ '{'
+
+// 1. address (send an empty address)
+: ADDRESS_KEYWORD_
 {
+    EmptyAddr();
+}
+
+// 2. address 2001:db8::1 (send this specific address)
+| ADDRESS_KEYWORD_ IPV6ADDR_ {
+    ClntCfgAddrLst.append(new TClntCfgAddr(new TIPv6Addr($2)));
+    ClntCfgAddrLst.getLast()->setOptions(ParserOptStack.getLast());
+}
+
+// 3. address 5 (send 5 addresses)
+|ADDRESS_KEYWORD_ Number
+{
+    for (int i = 0; i < $2; i++) {
+        EmptyAddr();
+    }
+}
+
+// 4. address { ... } (send an empty address with the following parameters)
+| ADDRESS_KEYWORD_ '{'
+{
+    // Get last context
+    SPtr<TClntParsGlobalOpt> globalOpt = ParserOptStack.getLast();
+
+    // Create new context based on the current one
+    SPtr<TClntParsGlobalOpt> newOpt = new TClntParsGlobalOpt(*globalOpt);
+
+    // Add this new context to the contexts stack
+    ParserOptStack.append(newOpt);
+}
+AddressParametersList '}'
+{
+    EmptyAddr(); // Create an empty address
+    ParserOptStack.delLast(); // Delete new context
+}
+
+// 5. address 2001:d8b::1 { ... } (spend specific address with the following parameters)
+| ADDRESS_KEYWORD_ IPV6ADDR_ '{'
+{
+    // We need to store just one address, but let's use PresentAddrLst
+    // We'll need that address to create an actual object when the context is closed
+    PresentAddrLst.clear();
+    PresentAddrLst.append(SPtr<TIPv6Addr> (new TIPv6Addr($2)));
+
     SPtr<TClntParsGlobalOpt> globalOpt = ParserOptStack.getLast();
     SPtr<TClntParsGlobalOpt> newOpt = new TClntParsGlobalOpt(*globalOpt);
     ParserOptStack.append(newOpt);
 }
-ADDRESDeclarationList '}'
+AddressParametersList '}'
 {
-    //ClntCfgAddrLst.append(SPtr<TClntCfgAddr> (new TClntCfgAddr()));
-    //set proper options specific for this Address
-    //ClntCfgAddrLst.getLast()->setOptions(&(*ParserOptStack.getLast()));
+    ClntCfgAddrLst.append(new TClntCfgAddr(PresentAddrLst.getLast()));
+    ClntCfgAddrLst.getLast()->setOptions(ParserOptStack.getLast());
     if (ParserOptStack.count())
 	ParserOptStack.delLast();
+    PresentAddrLst.clear();
 }
-//In this agregated declaration no address hints are allowed
+
+// 6. address 5 { ... } (send 5 addresses with the following parameters)
 |ADDRESS_KEYWORD_ Number '{'
 {
+    //In this agregated declaration no address hints are allowed
     ParserOptStack.append(new TClntParsGlobalOpt(*ParserOptStack.getLast()));
     ParserOptStack.getLast()->setAddrHint(false);
+
+    AddrCount_ = $2;
 }
-ADDRESDeclarationList '}'
+AddressParametersList '}'
 {
-    for (int i=0;i<$2; i++) EmptyAddr();
+    for (unsigned int i = 0; i < AddrCount_; i++) {
+        EmptyAddr();
+        ClntCfgAddrLst.getLast()->setOptions(ParserOptStack.getLast());
+    }
     ParserOptStack.delLast();
-}
-
-|ADDRESS_KEYWORD_ Number '{' '}'
-{
-    for (int i=0;i<$2; i++) EmptyAddr();
-}
-
-|ADDRESS_KEYWORD_ '{' '}'
-{
-    EmptyAddr();
-}
-
-|ADDRESS_KEYWORD_ Number
-{
-    for (int i=0;i<$2; i++) EmptyAddr();
-}
-
-|ADDRESS_KEYWORD_
-{
-    EmptyAddr();
+    AddrCount_ = 0;
 }
 ;
 
-ADDRESDeclarationList
-:  ADDRESOptionDeclaration
-|  ADDRESDeclarationList ADDRESOptionDeclaration
-|  IPV6ADDR_
-{
-    if (ParserOptStack.getLast()->getAddrHint())
-    {
-	ClntCfgAddrLst.append(new TClntCfgAddr(new TIPv6Addr($1)));
-	ClntCfgAddrLst.getLast()->setOptions(ParserOptStack.getLast());
-    }
-    else
-	YYABORT;  //this is aggregated version of IA
-}
-|  ADDRESDeclarationList IPV6ADDR_
-{
-    if (ParserOptStack.getLast()->getAddrHint())
-    {
-	ClntCfgAddrLst.append(new TClntCfgAddr(new TIPv6Addr($2)));
-	ClntCfgAddrLst.getLast()->setOptions(ParserOptStack.getLast());
-    }
-    else
-	YYABORT; //here is agregated version of IA
-}
+AddressParametersList
+:  AddressParameter
+|  AddressParametersList AddressParameter
 ;
 
-ADDRESOptionDeclaration
+AddressParameter
 : PreferredTimeOption
 | ValidTimeOption
 ;
@@ -533,7 +577,22 @@ DuidTypeOption
 StatelessMode
 :   STATELESS_
 {
-    ParserOptStack.getLast()->setIsIAs(false);
+    if (!ClntCfgIALst.empty()) {
+        Log(Crit) << "Attempting to enable statelss, but IA (stateful option) is already defined." << LogEnd;
+        YYABORT;
+    }
+
+    if (!ClntCfgTALst.empty()) {
+        Log(Crit) << "Attempting to enable statelss, but TA (stateful option) is already defined." << LogEnd;
+        YYABORT;
+    }
+
+    if (!ClntCfgPDLst.empty()) {
+        Log(Crit) << "Attempting to enable statelss, but PD (stateful option) is already defined." << LogEnd;
+        YYABORT;
+    }
+
+    ParserOptStack.getLast()->setStateful(false);
 }
 ;
 
@@ -547,9 +606,31 @@ WorkDirOption
 StrictRfcNoRoutingOption
 : STRICT_RFC_NO_ROUTING_
 {
-    Log(Notice) << "Strict-rfc-no-routing directive set: addresses will be added with 128 prefix." << LogEnd;
-    ParserOptStack.getLast()->setOnLinkPrefixLength(128);
-    // by default prefix is set to 128
+    Log(Warning) << "strict-rfc-no-routing has changed in 1.0.0RC2: it now takes one argument: "
+                 << " 0 (address configured with guessed /64 prefix length that may be wrong in "
+                 << "some cases; dibbler clients prior to 1.0.0RC2 used this) or 1 (address "
+                 << "configured with /128, as RFC specifies); the default has changed in 1.0.0RC2: "
+                 << "Dibbler is now RFC conformant." << LogEnd;
+}
+| STRICT_RFC_NO_ROUTING_ Number
+{
+    switch ($2) {
+    case 0:
+        // This is pre 1.0.0RC2 behaviour
+        Log(Warning) << "Strict-rfc-no-routing disabled: addresses will be "
+                     << "configured with /64 prefix." << LogEnd;
+        ParserOptStack.getLast()->setOnLinkPrefixLength(64);
+        break;
+    case 1:
+        // The default is now /128 anyway, so this is a no-op
+        Log(Warning) << "Strict-rfc-no-routing enabled (it is the default): "
+                     << "addresses will be configured with /128 prefix." << LogEnd;
+        break;
+    default:
+        Log(Crit) << "Invalid parameter passed to strict-rfc-no-routing: " << $2
+                  << ", only 0 or 1" << LogEnd;
+        YYABORT;
+    }
 }
 ;
 
@@ -803,19 +884,26 @@ T2Option
 PDDeclaration
 :PD_
 {
-    Log(Debug) << "Prefix delegation option found." << LogEnd;
-    StartPDDeclaration();
+    Log(Debug) << "Prefix delegation option (no parameters) found." << LogEnd;
+    if (!StartPDDeclaration()) {
+        YYABORT;
+    }
     EndPDDeclaration();
 }
 |PD_ '{' '}'
 {
-    Log(Debug) << "Prefix delegation option found." << LogEnd;
-    StartPDDeclaration();
+    Log(Debug) << "Prefix delegation option (empty scope) found." << LogEnd;
+    if (!StartPDDeclaration()) {
+        YYABORT;
+    }
     EndPDDeclaration();
 }
 |PD_ '{'
 {
-    StartPDDeclaration();
+    Log(Debug) << "Prefix delegation option (with scope) found." << LogEnd;
+    if (!StartPDDeclaration()) {
+        YYABORT;
+    }
 }
 PDOptionsList '}'
 {
@@ -823,14 +911,18 @@ PDOptionsList '}'
 }
 |PD_ Number 
 {
-    Log(Debug) << "Prefix delegation option found, setting IAID to" << $2 << LogEnd;
-    StartPDDeclaration();
+    Log(Debug) << "Prefix delegation option (with IAID set to " << $2 << " found." << LogEnd;
+    if (!StartPDDeclaration()) {
+        YYABORT;
+    }
     EndPDDeclaration();
     ClntCfgPDLst.getLast()->setIAID($2);
 }
 |PD_ Number '{'
 {
-    StartPDDeclaration();
+    if (!StartPDDeclaration()) {
+        YYABORT;
+    }
     this->iaid = $2;
 }
 PDOptionsList '}'
@@ -851,6 +943,8 @@ PDOption
 | T2Option
 ;
 
+
+
 Prefix
 : PREFIX_ IPV6ADDR_ '/' Number
 {
@@ -864,7 +958,48 @@ Prefix
     Log(Debug) << "PD: Adding single prefix." << LogEnd;
     SPtr<TClntCfgPrefix> prefix = new TClntCfgPrefix(new TIPv6Addr("::",true), 0);
     PrefixLst.append(prefix);
-};
+}
+
+| PREFIX_ '{' '}'
+{
+    Log(Debug) << "PD: Adding single prefix." << LogEnd;
+    SPtr<TClntCfgPrefix> prefix = new TClntCfgPrefix(new TIPv6Addr("::",true), 0);
+    PrefixLst.append(prefix);
+}
+
+| PREFIX_ '{'
+{
+}
+PrefixOptionsList '}'
+{
+    Log(Debug) << "PD: Adding single (any) prefix." << LogEnd;
+    SPtr<TClntCfgPrefix> prefix = new TClntCfgPrefix(new TIPv6Addr("::",true), 0);
+    prefix->setOptions(ParserOptStack.getLast());
+    PrefixLst.append(prefix);
+}
+
+| PREFIX_ IPV6ADDR_ '/' Number '{'
+{
+    SPtr<TIPv6Addr> addr = new TIPv6Addr($2);
+    SPtr<TClntCfgPrefix> prefix = new TClntCfgPrefix(addr, ($4));
+    PrefixLst.append(prefix);
+    Log(Debug) << "PD: Adding single prefix " << addr->getPlain() << "/" << ($4) << "." << LogEnd;
+}
+PrefixOptionsList '}'
+{
+    PrefixLst.getLast()->setOptions(ParserOptStack.getLast());
+}
+;
+
+PrefixOptionsList
+: PrefixOption
+| PrefixOptionsList PrefixOption
+;
+
+PrefixOption
+: ValidTimeOption
+| PreferredTimeOption
+;
 
 UnicastOption
 :UNICAST_ Number
@@ -1139,6 +1274,10 @@ NISPDomainOption
 LifetimeOption
 :OPTION_ LIFETIME_
 {
+    if (ParserOptStack.getLast()->getStateful()) {
+        Log(Crit) << "Information refresh time (lifetime) option can only be used in stateless mode." << LogEnd;
+        YYABORT;
+    }
     ParserOptStack.getLast()->setLifetime();
 }
 ;
@@ -1387,17 +1526,23 @@ void ClntParser::EmptyIface()
     ClntCfgIfaceLst.getLast()->addIA(ClntCfgIALst.getLast());
 }
 
-/**
- * method creates new scope appropriately for interface options and declarations
- * clears list of addresses
- *
- * @param aggregation - does this IA contains suboptions ( ia { ... } )
- */
-void ClntParser::StartIADeclaration(bool aggregation)
+/// method creates new scope appropriately for interface options and declarations
+/// clears list of addresses
+///
+/// @param aggregation - does this IA contains suboptions ( ia { ... } )
+/// @return true if creation was successful
+bool ClntParser::StartIADeclaration(bool aggregation)
 {
-  ParserOptStack.append(new TClntParsGlobalOpt(*ParserOptStack.getLast()));
-  ParserOptStack.getLast()->setAddrHint(!aggregation);
-  ClntCfgAddrLst.clear();
+    if (!ParserOptStack.getLast()->getStateful()) {
+        Log(Crit) << "Attempted to use IA (stateful option) in stateless mode." << LogEnd;
+        return (false);
+    }
+
+    ParserOptStack.append(new TClntParsGlobalOpt(*ParserOptStack.getLast()));
+    ParserOptStack.getLast()->setAddrHint(!aggregation);
+    ClntCfgAddrLst.clear();
+
+    return (true);
 }
 
 /**
@@ -1427,11 +1572,20 @@ void ClntParser::EndIADeclaration()
     //so it's should be left on the list and be appended with them to present list
 }
 
-void ClntParser::StartPDDeclaration()
+/// @brief creates PD context
+///
+/// @return true if initialization was successful
+bool ClntParser::StartPDDeclaration()
 {
-  ParserOptStack.append(new TClntParsGlobalOpt(*ParserOptStack.getLast()));
-  ClntCfgAddrLst.clear();
-  PrefixLst.clear();
+    if (!ParserOptStack.getLast()->getStateful()) {
+        Log(Crit) << "Attempted to use PD (stateful option) in stateless mode." << LogEnd;
+        return (false);
+    }
+
+    ParserOptStack.append(new TClntParsGlobalOpt(*ParserOptStack.getLast()));
+    ClntCfgAddrLst.clear();
+    PrefixLst.clear();
+    return (true);
 }
 
 bool ClntParser::EndPDDeclaration()
@@ -1463,7 +1617,9 @@ void ClntParser::EmptyIA()
     EmptyAddr();
     ClntCfgIALst.append(new TClntCfgIA());
     ClntCfgIALst.getLast()->setOptions(ParserOptStack.getLast());
-    //ClntCfgIALst.getLast()->addAddr(ClntCfgAddrLst.getLast());
+
+    // Commented out: by default sent empty IA, without any addresses
+    // ClntCfgIALst.getLast()->addAddr(ClntCfgAddrLst.getLast());
 }
 
 /**

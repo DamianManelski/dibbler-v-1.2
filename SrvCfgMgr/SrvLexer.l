@@ -76,6 +76,7 @@ preferred-lifetime  { return SrvParser::PREF_TIME_;}
 prefered-lifetime   { return SrvParser::PREF_TIME_;}
 valid-lifetime      { return SrvParser::VALID_TIME_;}
 
+drop-unicast        { return SrvParser::DROP_UNICAST_; }
 unicast             { return SrvParser::UNICAST_;}
 preference          { return SrvParser::PREFERENCE_;}
 pool                { return SrvParser::POOL_;}
@@ -154,6 +155,7 @@ hmac-sha512         { return SrvParser::DIGEST_HMAC_SHA512_; }
 key                 { return SrvParser::KEY_; }
 secret              { return SrvParser::SECRET_; }
 algorithm           { return SrvParser::ALGORITHM_; }
+reconfigure-enabled { return SrvParser::RECONFIGURE_ENABLED_; }
 fudge               { return SrvParser::FUDGE_; }
 client-class        { return SrvParser::CLIENT_CLASS_; }
 match-if            { return SrvParser::MATCH_IF_; }

@@ -11,10 +11,10 @@
 #include "Portable.h"
 #include "Logger.h"
 #include "RelMsg.h"
+#include "OptDUID.h"
 #include "RelOptInterfaceID.h"
 #include "RelOptRelayMsg.h"
 #include "RelOptGeneric.h"
-#include "RelOptDUID.h"
 
 //Constructor builds message on the basis of received message
 TRelMsg::TRelMsg(int iface,  SPtr<TIPv6Addr> addr, char* data,  int dataLen)
@@ -68,9 +68,9 @@ void TRelMsg::decodeOpts(char * buf, int bufSize) {
 	case OPTION_INTERFACE_ID:
 	    ptr = new TRelOptInterfaceID(buf+pos,length,this);
 	    break;
-    case OPTION_RELAY_ID:
-        ptr = new TRelOptDUID(code,buf+pos,length,this);
-        break;
+        case OPTION_CLIENTID:
+            ptr = new TOptDUID(code, buf+pos, length, this);
+            break;
 	default:
 	    ptr = new TRelOptGeneric(code, buf+pos, length, this);
 	    break;

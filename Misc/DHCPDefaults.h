@@ -62,7 +62,8 @@
 #define CLIENT_DEFAULT_UNICAST false
 #define CLIENT_DEFAULT_RAPID_COMMIT false
 
-#define CLIENT_DEFAULT_PREFIX_LENGTH 64
+// It is now /128. See discussion in bug #222
+#define CLIENT_DEFAULT_PREFIX_LENGTH 128
 
 #define CLIENT_DEFAULT_FQDN_FLAG_S true
 

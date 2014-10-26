@@ -20,7 +20,6 @@
 
 #include <Ws2tcpip.h.>
 #include <Ws2spi.h>
-//#include <Windows.h>
 
 #include <iphlpapi.h>
 #include <iptypes.h>
@@ -31,7 +30,6 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <io.h>
-
 
 #include "Portable.h"
 #include "DHCPConst.h"
@@ -123,7 +121,7 @@ char * getAAAKey(uint32_t SPI, uint32_t *len) {
     if (0 > fd)
         return NULL;
 
-    retval =  malloc(st.st_size);
+    retval = malloc(st.st_size);
     if (!retval)
         return NULL;
 
@@ -341,6 +339,7 @@ extern int ipaddr_add(const char * ifacename, int ifaceid, const char * addr,
     sprintf(arg8,"preferredlifetime=%u", pref);
     // use _P_DETACH to speed things up, (but the tentative detection will surely fail)
     i=_spawnl(_P_WAIT, netshPath, netshPath, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, NULL);
+    if (i) { i = _spawnl(_P_WAIT, netshPath, netshPath, arg1, arg2, "set", arg4, arg5, arg6, arg7, arg8, NULL); }
     return i;
 }
 
@@ -477,7 +476,7 @@ int sock_recv(int fd, char * myPlainAddr, char * peerPlainAddr, char * buf, int 
         return LOWLEVEL_ERROR_UNSPEC;
     } else {
         inet_ntop6(info.sin6_addr.u.Byte,peerPlainAddr);
-        return        readBytes;
+        return	readBytes;
     }
 }
 
@@ -625,12 +624,13 @@ int prefix_add(const char* ifname, int ifindex, const char* prefixPlain, int pre
     sprintf(buf, "%s %s %s %s %s %s %s %s %s %s", arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);
     i=_spawnl(_P_WAIT,netshPath,netshPath,arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8,arg9,arg10, NULL);
 
-    if (i==-1) {
-        /// @todo: some better error support
-        return -1;
+    // if error code is non-zero, then the addition failed. One of the reasons why this
+    // could happen is because the address or prefix already exists, so we'll try
+    // to update its parameters (if this is RENEW/REBIND)
+    if (i) {
+        i = _spawnl(_P_WAIT, netshPath, netshPath, arg1, arg2, "set", arg4, arg5, arg6, arg7, arg8, arg9, arg10, NULL);
     }
-
-    return LOWLEVEL_NO_ERROR;
+    return i;
 }
 
 int prefix_update(const char* ifname, int ifindex, const char* prefixPlain, int prefixLength,

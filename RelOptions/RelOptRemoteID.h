@@ -19,7 +19,6 @@ public:
     TRelOptRemoteID(int enterprise, char * data, int dataLen, TMsg* parent);
     TRelOptRemoteID(char * buf,  int n, TMsg* parent);
     bool doDuties();
-    char * storeSelf(char *buf);
  private:
 };
 

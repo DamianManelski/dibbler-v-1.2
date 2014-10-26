@@ -312,18 +312,14 @@ bool TIfaceIface::addTcpSocket(SPtr<TIPv6Addr> addr, int port, int baseFD)
 
     SocketsLst.append(ptr);
     return true;
-
 }
 
 bool TIfaceIface::closeTcpConnection()
 {
-    int sockId, stype, failCount=0;
-    bool found=false;
     // tricks with FDS macros
 
     fd_set fds;
     fds = *TIfaceSocket::getFDS();
-	SPtr<TIfaceSocket> sock;
    
 	/*
     while (!found) {

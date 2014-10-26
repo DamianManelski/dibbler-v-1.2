@@ -25,7 +25,7 @@
 using namespace std;
 
 TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
-    :TSrvMsg(query->getIface(), query->getAddr(), LEASEQUERY_REPLY_MSG,
+    :TSrvMsg(query->getIface(), query->getRemoteAddr(), LEASEQUERY_REPLY_MSG,
 	     query->getTransID(),query->Bulk)
 {
 	
@@ -45,8 +45,6 @@ TSrvMsgLeaseQueryReply::TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query)
 		IsDone = false;
 	}
 }
-
-
 
 
 /** 
@@ -547,10 +545,9 @@ void TSrvMsgLeaseQueryReply::appendClientData(SPtr<TAddrClient> cli) {
     Options.push_back((Ptr*)cliData);
 }
 
-void  TSrvMsgLeaseQueryReply::getAllClientDUIDRelatedBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr> linkaddr){
+void  TSrvMsgLeaseQueryReply::getAllClientDUIDRelatedBindings(SPtr<TDUID> opt){
 	
-	SPtr<TAddrClient> ptr, cli;
-	int clntCount = 0, i=0;
+    SPtr<TAddrClient> cli;
 	SrvAddrMgr().firstClient();
 	cli = SrvAddrMgr().getClient(opt);
 	if (cli)

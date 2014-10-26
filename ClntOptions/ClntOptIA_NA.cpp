@@ -28,7 +28,7 @@
  */
 TClntOptIA_NA::TClntOptIA_NA(SPtr<TAddrIA> clntAddrIA, bool zeroTimes, TMsg* parent)
     :TOptIA_NA(clntAddrIA->getIAID(), zeroTimes?0:clntAddrIA->getT1(),
-	       zeroTimes?0:clntAddrIA->getT2(), parent) 
+               zeroTimes?0:clntAddrIA->getT2(), parent), Iface_(0)
 {
     SPtr <TAddrAddr> addr;
     clntAddrIA->firstAddr();
@@ -218,13 +218,8 @@ int TClntOptIA_NA::getStatusCode()
 void TClntOptIA_NA::setContext(SPtr<TDUID> srvDuid, SPtr<TIPv6Addr> srvAddr, int iface)
 {
     DUID = srvDuid;
-    if (srvAddr) {
-        Unicast = true;
-    } else {
-        Unicast = false;
-    }
     Addr = srvAddr;
-    Iface = iface;
+    Iface_ = iface;
 }
 
 TClntOptIA_NA::~TClntOptIA_NA() {
@@ -246,69 +241,11 @@ bool TClntOptIA_NA::doDuties() {
     SPtr<TAddrAddr> ptrAddrAddr;
     SPtr<TClntOptIAAddress> ptrOptAddr;
 
-#if 0
-    //if not we don't like this server, cause
-    //WE WANT IA WITH AT LEAST NUMBER OF ADDRESSES
-    //and we release the whole IA with addresses just received and those in AddrMgr
-
-    //Was enough number of addresses received by client?
-    if (countValidAddrs(ptrIA) < CfgMgr->countAddrForIA(ptrIA->getIAID()))
-    {
-        //Server provided not enough addresses, so realese this IA in 
-        //this particular server (it cheated us in advertise message or
-        //or another client stole our addresses in the meantime 
-        //or the server doesn't want to prolong lease.
-
-        ptrIA->firstAddr();
-        while(SPtr<TAddrAddr> addrToRel=ptrIA->getAddr()) {
-	    SPtr<TIPv6Addr> addr2(addrToRel->get());
-            ClntIfaceMgr().getIfaceByID(ptrIA->getIface())->delAddr(addr2);
-	}
-
-        this->firstAddr();
-        while ( ptrOptAddr = this->getAddr() )
-        {
-            //add valid addresses from received IA not contained in IA 
-            //in address manager to IA in address manager
-            if(!ptrIA->getAddr(ptrOptAddr->getAddr())
-                && (ptrOptAddr->getValid()) )
-            {
-                ptrIA->addAddr(ptrOptAddr->getAddr(), 
-                    ptrOptAddr->getPref(), 
-                    ptrOptAddr->getValid()
-                    );
-            }
-            //and remove from IA in address manager those addresses, which 
-            //has expired
-            if (ptrIA->getAddr(ptrOptAddr->getAddr()) 
-                && !(ptrOptAddr->getValid()) )
-            {
-                ptrIA->delAddr(ptrOptAddr->getAddr());
-            }
-        }
-
-        //Now all addrs (new, old, expired) are in ptrIA now - those which 
-        //should be freed
-        List(TAddrIA) list;
-        list.append(ptrIA);
-
-        ClntAddrMgr().delIA(ptrIA->getIAID() );
-        ClntAddrMgr().addIA(new TAddrIA(ptrIA->getIface(), SPtr<TIPv6Addr>(), SPtr<TDUID>(),
-				   0x7fffffff,0x7fffffff,ptrIA->getIAID()));
-
-	List(TAddrIA) pdLst;
-	pdLst.clear();
-        if (ptrIA->getAddrCount())
-            TransMgr->sendRelease(list,0,pdLst);
-        return false;
-    }
-#endif /* if 0 */
-
     SPtr<TIfaceIface> ptrIface;
-    ptrIface = ClntIfaceMgr().getIfaceByID(this->Iface);
+    ptrIface = ClntIfaceMgr().getIfaceByID(Iface_);
     if (!ptrIface)
     {
-	Log(Error) << "Interface with ifindex=" << this->Iface << " not found." << LogEnd;
+        Log(Error) << "Interface with ifindex=" << Iface_ << " not found." << LogEnd;
         return true;
     }
 
@@ -350,7 +287,7 @@ bool TClntOptIA_NA::doDuties() {
             }
 
             // set up new options in IfaceMgr
-            SPtr<TIfaceIface> ptrIface = ClntIfaceMgr().getIfaceByID(this->Iface);
+            SPtr<TIfaceIface> ptrIface = ClntIfaceMgr().getIfaceByID(Iface_);
             if (ptrIface)
                 ptrIface->updateAddr(ptrOptAddr->getAddr(),
                         ptrOptAddr->getPref(),
@@ -454,7 +391,7 @@ void TClntOptIA_NA::releaseAddr(long IAID, SPtr<TIPv6Addr> addr )
 }
 
 void TClntOptIA_NA::setIface(int iface) {
-    this->Iface    = iface;
+    Iface_ = iface;
 }
 
 bool TClntOptIA_NA::isValid() const {

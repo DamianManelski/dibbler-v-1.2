@@ -15,6 +15,8 @@
 #include "AddrClient.h"
 #include "Logger.h"
 #include "hex.h"
+//#include "OptDUID.h"
+#include "OptVendorData.h"
 
 using namespace std;
 
@@ -386,15 +388,13 @@ std::ostream & operator<<(std::ostream & strum, TAddrClient &x)
 
     // reconfigure-key
 	if (!x.ReconfKey_.empty()) {
-		strum << " <ReconfigureKey length=\"" << x.ReconfKey_.size() << "\">"
-			<< hexToText(&x.ReconfKey_[0], x.ReconfKey_.size(), false)
-			<< "</ReconfigureKey>" << endl;
+		strum << "    <ReconfigureKey length=\"" << x.ReconfKey_.size() << "\">"
+	          << hexToText(&x.ReconfKey_[0], x.ReconfKey_.size(), false)
+			  << "</ReconfigureKey>" << endl;
 	}
 	else {
-		strum << " <ReconfigureKey />" << endl;
+		strum << "    <ReconfigureKey />" << endl;
 	}
-
-
 
     strum << "    <!-- " << x.IAsLst.count() << " IA(s) -->" << endl;
     SPtr<TAddrIA> ptr;

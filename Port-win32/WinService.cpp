@@ -3,6 +3,7 @@
  *
  * authors: Tomasz Mrugalski <thomson@klub.com.pl>
  *          Marek Senderski <msend@o2.pl>
+ * changes: Hernan Martinez <hernan(dot)c(dot)martinez(at)gmail(dot)com>
  *
  * Released under GNU GPL v2 licence
  *
@@ -12,6 +13,8 @@
 #include <stdio.h>
 #include "winservice.h"
 #include "Logger.h"
+
+const char TWinService::ADMIN_REQUIRED_STR[] = "This action requires administrative privileges.";
 
 TWinService* TWinService::ServicePtr= NULL;
 
@@ -84,7 +87,6 @@ void TWinService::Handler(DWORD dwOpcode) {
     case SERVICE_CONTROL_STOP: // 1
         pService->SetStatus(SERVICE_STOP_PENDING);
         pService->OnStop();
-        pService->SetStatus(SERVICE_STOPPED);
         pService->IsRunning = FALSE;
     break;
 
@@ -505,4 +507,32 @@ bool TWinService::verifyPort() {
          Log(Notice) << "Windows 8:     major=6 minor=2" << LogEnd;
     }
     return ok;
+}
+
+/// @brief Check if the running process has administrative privileges
+///
+/// @return true if run as admin
+bool TWinService::isRunAsAdmin()
+{
+    BOOL fIsRunAsAdmin = FALSE;
+    PSID pAdministratorsGroup = NULL;
+
+    // Allocate and initialize a SID of the administrators group. 
+    SID_IDENTIFIER_AUTHORITY NtAuthority = SECURITY_NT_AUTHORITY;
+    if ( AllocateAndInitializeSid(
+             &NtAuthority,
+             2,
+             SECURITY_BUILTIN_DOMAIN_RID,
+             DOMAIN_ALIAS_RID_ADMINS,
+             0, 0, 0, 0, 0, 0,
+             &pAdministratorsGroup) )
+    {
+        // Determine whether the SID of administrators group is enabled in  
+        // the primary access token of the process. 
+        CheckTokenMembership(NULL, pAdministratorsGroup, &fIsRunAsAdmin);
+
+        // Cleanup for all allocated resources. 
+        FreeSid(pAdministratorsGroup);
+    }
+    return fIsRunAsAdmin == TRUE;
 }

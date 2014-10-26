@@ -21,12 +21,13 @@ class TAddrClient;
 #include "Portable.h"
 #include "OptVendorData.h"
 
+
+
 class TAddrClient
 {
     friend std::ostream & operator<<(std::ostream & strum, TAddrClient &x);
 
 public:
-	
     TAddrClient(SPtr<TDUID> duid);
     SPtr<TDUID> getDUID();
 

@@ -111,7 +111,7 @@ virtual ~SrvParser();
 %token FQDN_, ACCEPT_UNKNOWN_FQDN_, FQDN_DDNS_ADDRESS_, DDNS_PROTOCOL_, DDNS_TIMEOUT_
 %token ACCEPT_ONLY_,REJECT_CLIENTS_,POOL_, SHARE_
 %token T1_,T2_,PREF_TIME_,VALID_TIME_
-%token UNICAST_,PREFERENCE_,RAPID_COMMIT_
+%token UNICAST_, DROP_UNICAST_, PREFERENCE_,RAPID_COMMIT_
 %token IFACE_MAX_LEASE_, CLASS_MAX_LEASE_, CLNT_MAX_LEASE_
 %token STATELESS_
 %token CACHE_SIZE_
@@ -136,6 +136,7 @@ virtual ~SrvParser();
 %token CLIENT_VENDOR_SPEC_DATA_
 %token CLIENT_VENDOR_CLASS_EN_
 %token CLIENT_VENDOR_CLASS_DATA_
+%token RECONFIGURE_ENABLED_
 %token ALLOW_
 %token DENY_
 %token SUBSTRING_, STRING_KEYWORD_, ADDRESS_LIST_
@@ -194,6 +195,8 @@ GlobalOption
 | Key
 | ScriptName
 | PerformanceMode
+| ReconfigureEnabled
+| DropUnicast
 ;
 
 InterfaceOptionDeclaration
@@ -715,12 +718,43 @@ VendorSpecList
     ParserOptStack.getLast()->addExtraOption(new TOptVendorSpecInfo(OPTION_VENDOR_OPTS, $1, $3,
 								    $5.duid, $5.length, 0), false);
 }
+| Number '-' Number '-' IPV6ADDR_ 
+{
+    SPtr<TIPv6Addr> addr(new TIPv6Addr($5));
+    Log(Debug) << "Vendor-spec defined: Enterprise: " << $1 << ", optionCode: "
+               << $3 << ", value=" << addr->getPlain() << LogEnd;
+    ParserOptStack.getLast()->addExtraOption(new TOptVendorSpecInfo(OPTION_VENDOR_OPTS, $1, $3,
+								    new TIPv6Addr($5), 0), false);
+}
+| Number '-' Number '-' STRING_ 
+{
+    Log(Debug) << "Vendor-spec defined: Enterprise: " << $1 << ", optionCode: "
+	       << $3 << ", valuelen=" << strlen($5) << LogEnd;
+
+    ParserOptStack.getLast()->addExtraOption(new TOptVendorSpecInfo(OPTION_VENDOR_OPTS, $1, $3,
+								    $5, 0), false);
+}
 | VendorSpecList ',' Number '-' Number '-' DUID_
 {
     Log(Debug) << "Vendor-spec defined: Enterprise: " << $3 << ", optionCode: "
 	       << $5 << ", valuelen=" << $7.length << LogEnd;
     ParserOptStack.getLast()->addExtraOption(new TOptVendorSpecInfo(OPTION_VENDOR_OPTS, $3, $5,
 								    $7.duid, $7.length, 0), false);
+}
+| VendorSpecList ',' Number '-' Number '-' IPV6ADDR_ 
+{
+    SPtr<TIPv6Addr> addr(new TIPv6Addr($7));
+    Log(Debug) << "Vendor-spec defined: Enterprise: " << $3 << ", optionCode: "
+               << $5 << ", value=" << addr->getPlain() << LogEnd;
+    ParserOptStack.getLast()->addExtraOption(new TOptVendorSpecInfo(OPTION_VENDOR_OPTS, $3, $5,
+								    addr, 0), false);
+}
+| VendorSpecList ',' Number '-' Number '-' STRING_
+{
+    Log(Debug) << "Vendor-spec defined: Enterprise: " << $3 << ", optionCode: "
+	       << $5 << ", valuelen=" << strlen($7) << LogEnd;
+    ParserOptStack.getLast()->addExtraOption(new TOptVendorSpecInfo(OPTION_VENDOR_OPTS, $3, $5,
+								    $7, 0), false);
 }
 ;
 
@@ -902,6 +936,11 @@ PDPoolOption
 PDLength
 : PD_LENGTH_ Number
 {
+    if ( (($2) > 128) || (($2) < 1) ) {
+        Log(Crit) << "Invalid pd-length:" << $2 << ", allowed range is 1..128."
+                  << LogEnd;
+        YYABORT;
+    }
    this->PDPrefix = $2;
 }
 ;
@@ -1074,6 +1113,12 @@ UnicastAddressOption
 }
 ;
 
+DropUnicast
+: DROP_UNICAST_
+{
+    CfgMgr->dropUnicast(true);
+}
+
 RapidCommitOption
 :   RAPID_COMMIT_ Number
 {
@@ -1164,7 +1209,22 @@ PerformanceMode
     }
 
     CfgMgr->setPerformanceMode($2);
-}
+};
+
+ReconfigureEnabled
+: RECONFIGURE_ENABLED_ Number
+{
+    switch ($2) {
+    case 0:
+    case 1:
+        CfgMgr->setReconfigureSupport($2);
+        break;
+    default:
+        Log(Crit) << "Invalid reconfigure-enabled value " << $2
+                  << ", only 0 and 1 are supported." << LogEnd;
+        YYABORT;
+    }
+};
 
 
 InactiveMode

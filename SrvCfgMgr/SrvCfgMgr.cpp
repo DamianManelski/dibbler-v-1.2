@@ -37,7 +37,8 @@ TSrvCfgMgr * TSrvCfgMgr::Instance = 0;
 int TSrvCfgMgr::NextRelayID = RELAY_MIN_IFINDEX;
 
 TSrvCfgMgr::TSrvCfgMgr(const std::string& cfgFile, const std::string& xmlFile)
-    :TCfgMgr(), XmlFile(xmlFile), reconfigure(false), PerformanceMode_(false)
+    :TCfgMgr(), XmlFile(xmlFile), Reconfigure_(false), PerformanceMode_(false),
+     DropUnicast_(false)
 {
     setDefaults();
 
@@ -516,7 +517,7 @@ SPtr<TIPv6Addr> TSrvCfgMgr::getRandomAddr(SPtr<TDUID> clntDuid,
 /// @return true if supported, false otherwise
 bool TSrvCfgMgr::isClntSupported(SPtr<TSrvMsg> msg) {
     int iface=msg->getIface();
-    SPtr<TIPv6Addr> clntAddr = msg->getAddr();
+    SPtr<TIPv6Addr> clntAddr = msg->getRemoteAddr();
 
     SPtr<TOpt> opt = msg->getOption(OPTION_CLIENTID);
     SPtr<TDUID> duid;
@@ -957,10 +958,13 @@ void TSrvCfgMgr::InClientClass(SPtr<TSrvMsg> msg)
         }
 }
 
+void TSrvCfgMgr::setReconfigureSupport(bool reconf) {
+    Reconfigure_ = reconf;
+}
 
-bool TSrvCfgMgr::reconfigureSupport()
+bool TSrvCfgMgr::getReconfigureSupport()
 {
-    return reconfigure;
+    return Reconfigure_;
 }
 
 /// @brief removes reserved entries from the cache
@@ -1219,4 +1223,12 @@ void TSrvCfgMgr::setPerformanceMode(bool mode) {
 
 bool TSrvCfgMgr::getPerformanceMode() {
     return PerformanceMode_;
+}
+
+void TSrvCfgMgr::dropUnicast(bool drop) {
+    DropUnicast_ = drop;
+}
+
+bool TSrvCfgMgr::dropUnicast() {
+    return DropUnicast_;
 }

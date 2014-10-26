@@ -90,7 +90,16 @@ public:
     bool guessMode();
     ESrvIfaceIdOrder getInterfaceIDOrder();
     int getCacheSize();
-    bool reconfigureSupport();
+
+    /// returns where reconfigure should be supported or not
+    ///
+    /// @return true if supported
+    bool getReconfigureSupport();
+
+    /// sets whether the reconfigure should be supported or not
+    ///
+    /// @param reconf tells whether reconfigure should be supported
+    void setReconfigureSupport(bool reconf);
 
     void setDDNSAddress(SPtr<TIPv6Addr> ddnsAddress);
     SPtr<TIPv6Addr> getDDNSAddress(int iface);
@@ -128,13 +137,18 @@ public:
     void setPerformanceMode(bool mode);
     bool getPerformanceMode();
 
+    void dropUnicast(bool drop);
+    bool dropUnicast();
+
     // used to be private, but we need access in tests
 protected:
     TSrvCfgMgr(const std::string& cfgFile, const std::string& xmlFile);
     static TSrvCfgMgr * Instance;
     static int NextRelayID;
     std::string XmlFile;
-    bool reconfigure;
+
+    /// specifies whether the server should support reconfigure or not
+    bool Reconfigure_;
 
     bool IsDone;
     bool validateConfig();
@@ -169,6 +183,7 @@ protected:
     unsigned int BulkLQTimeout;
 
     bool PerformanceMode_;
+    bool DropUnicast_;
 };
 
 #endif /* SRVCONFMGR_H */

@@ -117,7 +117,7 @@ TSrvOptIA_NA::TSrvOptIA_NA(SPtr<TSrvOptIA_NA> queryOpt, SPtr<TSrvMsg> queryMsg, 
     :TOptIA_NA(queryOpt->getIAID(), queryOpt->getT1(), queryOpt->getT2(), parent) {
 
     Iface = parent->getIface();
-    ClntAddr = queryMsg->getAddr();
+    ClntAddr = queryMsg->getRemoteAddr();
     ClntDuid  = queryMsg->getClientDUID();
 
     // true for advertise, false for everything else
@@ -288,9 +288,9 @@ bool TSrvOptIA_NA::assignFixedLease(SPtr<TSrvOptIA_NA> req, bool quiet) {
 
 		TSrvMsg*  parent = dynamic_cast<TSrvMsg*>  (this->Parent);
 		
-		SPtr<TOptVendorData> remoteId = parent->getOption(OPTION_REMOTE_ID);
+        SPtr<TOptVendorData> remoteId = (Ptr*)parent->getOption(OPTION_REMOTE_ID);
 		
-		SPtr<TOptDUID> relayIdOpt = parent->getOption(OPTION_RELAY_ID);
+        SPtr<TOptDUID> relayIdOpt = (Ptr*) parent->getOption(OPTION_RELAY_ID);
 		SPtr<TDUID> relayId;
 
 		if (relayIdOpt)
@@ -352,7 +352,7 @@ bool TSrvOptIA_NA::assignAddr(SPtr<TIPv6Addr> addr, uint32_t pref, uint32_t vali
 
     /// @todo: remove get addr-params
     if (ptrClass->getAddrParams()) {
-        Log(Debug) << "Experimental: addr-params suboption added." << LogEnd;
+        Log(Debug) << "Experimental: addr-params subotion added." << LogEnd;
         optAddr->addOption((Ptr*)ptrClass->getAddrParams());
     }
 

@@ -33,11 +33,11 @@ bool TClntOptLifetime::doDuties()
         return false;
     }
 
-    int ifindex = this->Parent->getIface();
+    int ifindex = Parent->getIface();
 
     SPtr<TOptDUID> duid = (Ptr*)Parent->getOption(OPTION_SERVERID);
 
-    if (!DUID) {
+    if (!duid) {
 	Log(Error) << "Unable to find proper DUID while " << reason << LogEnd;
 	return false;
     }
@@ -50,5 +50,5 @@ bool TClntOptLifetime::doDuties()
     }
 
     SPtr<TClntCfgIface> cfgIface = ClntCfgMgr().getIface(ifindex);
-    return iface->setLifetime(DUID, Parent->getAddr(), Value);
+    return iface->setLifetime(duid->getDUID(), Parent->getRemoteAddr(), Value);
 }

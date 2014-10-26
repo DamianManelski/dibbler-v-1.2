@@ -12,7 +12,6 @@
 #ifndef DHCPCONST_H
 #define DHCPCONST_H
 
-//#include <vector>
 #define ALL_DHCP_RELAY_AGENTS_AND_SERVERS  "ff02::1:2"
 #define ALL_DHCP_SERVERS                   "ff05::1:3"
 
@@ -154,12 +153,15 @@
 #define OPTION_LQ_RELAY_DATA    47
 #define OPTION_LQ_CLIENT_LINK   48
 
+#define OPTION_RELAY_ID         53
+
 // draft-ietf-softwire-ds-lite-tunnel-option-10, approved by IESG
 #define OPTION_AFTR_NAME        64
 
+// RFC6939
+#define OPTION_CLIENT_LINKLAYER_ADDR 79
+
 // draft-ietf-mif-dhcpv6-route-option-04
-// RFC5460: Bulk Leasequer
-#define OPTION_RELAY_ID		53
 #define OPTION_NEXT_HOP         242
 #define OPTION_RTPREFIX         243
 
@@ -202,7 +204,7 @@ typedef enum {
 #define STATUSCODE_QUERYTERMINATED 11
 
 // INFINITY + 1 is 0. That's cool!
-#define DHCPV6_INFINITY (uint32_t) 0xffffffffu
+#define DHCPV6_INFINITY 0xffffffffu
 
 /// used for 2 purposes:
 /// is address tentative?
@@ -228,8 +230,8 @@ enum EUnknownFQDNMode {
     UNKNOWN_FQDN_REJECT = 0,      // reject unknown FQDNs (do not assign a name from pool)
     UNKKOWN_FQDN_ACCEPT_POOL = 1, // assign other name available in pool
     UNKNOWN_FQDN_ACCEPT = 2,      // accept unknown FQDNs
-    UKNNOWN_FQDN_APPEND = 3,      // accept, but append defined domain suffix
-    UKNNOWN_FQDN_PROCEDURAL = 4   // generate name procedurally, append defined domain suffix
+    UNKNOWN_FQDN_APPEND = 3,      // accept, but append defined domain suffix
+    UNKNOWN_FQDN_PROCEDURAL = 4   // generate name procedurally, append defined domain suffix
 };
 
 // defines Identity assotiation type

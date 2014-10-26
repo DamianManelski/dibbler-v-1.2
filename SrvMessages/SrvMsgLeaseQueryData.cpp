@@ -15,9 +15,10 @@
 #include "Logger.h"
 
 TSrvMsgLeaseQueryData::TSrvMsgLeaseQueryData(SPtr<TSrvMsgLeaseQuery> query)
-	:TSrvMsg(query->getIface(), query->getAddr(), LEASEQUERY_DATA_MSG,
+    :TSrvMsg(query->getIface(), query->getRemoteAddr(), LEASEQUERY_DATA_MSG,
 	query->getTransID(), query->Bulk)
 {
+    isComplete = false;
     // append CLIENT-ID
     SPtr<TOpt> opt;
     opt = query->getOption(OPTION_CLIENTID);

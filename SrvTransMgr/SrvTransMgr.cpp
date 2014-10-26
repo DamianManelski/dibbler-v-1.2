@@ -60,8 +60,12 @@ TSrvTransMgr::TSrvTransMgr(const std::string xmlFile, int port)
         }
     }
     
-    int clients = checkReconfigures();
-    Log(Info) << "Sent Reconfigure to " << clients << " client(s)." << LogEnd;
+    if (SrvCfgMgr().getReconfigureSupport()) {
+        int clients = checkReconfigures();
+        Log(Info) << "Sent Reconfigure to " << clients << " client(s)." << LogEnd;
+    } else {
+        Log(Info) << "Reconfigure support was not enabled." << LogEnd;
+    }
 
     SrvAddrMgr().setCacheSize(SrvCfgMgr().getCacheSize());
 }
@@ -114,6 +118,16 @@ int TSrvTransMgr::checkReconfigures() {
                 {
                     Log(Info) << "Client " << cli->getDUID()->getPlain()
                               << " uses outdated info. Sending RECONFIGURE." << LogEnd;
+                    if (!unicast) {
+                        Log(Warning) << "Unable to send RECONFIGURE to client " << cli->getDUID()->getPlain()
+                                  << ": no unicast address recorded." << LogEnd;
+                        check = false;
+                        // Can't do anything here if we don't have unicast address of the client.
+                        // (That's odd. Unicast should be in the database. Are we dealing with a
+                        // broken database here?)
+                        break;
+                    }
+
                     sendReconfigure(unicast, iface, RENEW_MSG, ptrDUID);
                     clients++;
                     if (SrvAddrMgr().delClntAddr(cli->getDUID(), ia->getIAID(), adr->get(),false)) {
@@ -145,8 +159,19 @@ int TSrvTransMgr::checkReconfigures() {
                 }
                 else
                 {
+                    if (!unicast) {
+                        Log(Warning) << "Unable to send RECONFIGURE to client " << cli->getDUID()->getPlain()
+                                  << ": no unicast address recorded." << LogEnd;
+                        check = false;
+                        // Can't do anything here if we don't have unicast address of the client.
+                        // (That's odd. Unicast should be in the database. Are we dealing with a
+                        // broken database here?)
+                        break;
+                    }
+
                     Log(Info) << "Client " << cli->getDUID()->getPlain()
                               << "uses outdated info. Sending RECONFIGURE." << LogEnd;
+
                     sendReconfigure(unicast, iface, RENEW_MSG, ptrDUID);
                     clients++;
                     check=false;
@@ -279,6 +304,14 @@ void TSrvTransMgr::relayMsg(SPtr<TSrvMsg> msg)
     if (!msg->check()) {
         // proper warnings will be printed in the check() method, if necessary.
         // Log(Warning) << "Invalid message received." << LogEnd;
+        return;
+    }
+
+    // If unicast is disabled and the client sent it to unicast,
+    // send back status code with UseMulticast and be done with it.
+    if (!unicastCheck(msg)) {
+        Log(Warning) << "Message was dropped, because it was sent to unicast and "
+                     << "unicast traffic is not allowed." << LogEnd;
         return;
     }
 
@@ -430,6 +463,57 @@ void TSrvTransMgr::relayMsg(SPtr<TSrvMsg> msg)
     // save DB state regardless of action taken
     SrvAddrMgr().dump();
     SrvCfgMgr().dump();
+}
+
+bool TSrvTransMgr::unicastCheck(SPtr<TSrvMsg> msg) {
+
+    // If it's relayed message, then it's ok
+    if (!msg->RelayInfo_.empty())
+        return true;
+
+    // Ok, we don't know what address it was received on.
+    // This must be one weird OS we're running on. Anyway, let's
+    // pretend it was not unicast.
+    if (!msg->getLocalAddr())
+        return true;
+
+    // All good, received on multicast
+    if (msg->getLocalAddr()->multicast())
+        return true;
+
+    // Received on unicast and it's not relayed. Do we have
+    // unicast support enabled on this interface?
+    SPtr<TSrvCfgIface> cfgIface = SrvCfgMgr().getIfaceByID(msg->getIface());
+
+    // That's weird! We don't have a configuration for this interface?
+    if (!cfgIface)
+        return true;
+
+    // Do we have unicast enabled on this interface? Yes => all is good.
+    if (cfgIface->getUnicast())
+        return true;
+
+    // Ok, so we've got a problem here. Unicast is forbidden and we
+    // received unicast traffic.
+    if (!SrvCfgMgr().dropUnicast()) {
+        Log(Warning) << "Received message on address " << msg->getLocalAddr()->getPlain()
+                     << " on interface " << cfgIface->getFullName()
+                     << ", but unicast is not allowed on this interface."
+                     << LogEnd;
+        return true;
+    }
+
+    TOptList options;
+
+    SPtr<TOpt> status(new TOptStatusCode(STATUSCODE_USEMULTICAST,
+                                         string("Please send your message to multicast, not to ")
+                                         + msg->getLocalAddr()->getPlain(), NULL));
+    options.push_back(status);
+
+    // Message will be sent in the constructor
+    TSrvMsgReply(msg, options);
+
+    return false;
 }
 
 void TSrvTransMgr::doDuties()

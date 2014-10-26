@@ -396,7 +396,8 @@ braces that create a new route scope. See Section \ref{server-route-scope}.
   \ref{example-relay} for details.
 
  \item[vendor-spec] -- (scope: interface, type: integer-hexstring,
-   default: not defined). This parameter can be used to configure some
+   regular string or an IPv6 address, default: not defined). This
+   parameter can be used to configure some
    vendor-specific information option. Since there are no
    dibbler-specific options, this implementation is flexible. User can
    specify in the configuration file, how should this option look
@@ -470,6 +471,16 @@ braces that create a new route scope. See Section \ref{server-route-scope}.
             accept-only list is defined, only client from that list
             will be supported.
 
+\item[drop-unicast] -- (scope: global). In general, clients are
+            supposed to send their messages to multicast, unless the
+            server explicitly allows unicast. \cite{rfc3315} says
+            that packets sent to unicast should be dropped and
+            server must respond with status code set to UseMulticast.
+            That's a bit harsh in author's opinion, so this behavior
+            is not set by default. However, if you want strict RFC
+            compliance, you can enable this by adding drop-unicast
+            in your global scope.
+
 \item[addr-params] -- (scope: class). Experimental feature that takes
   one boolean parameter. It defines prefix length that is configured
   in addr-params option. See Section \ref{feature-addr-params} for
@@ -481,6 +492,11 @@ braces that create a new route scope. See Section \ref{server-route-scope}.
     enabled or disabled. The default is 0 (disabled). Use with
     caution. See Section \ref{feature-performance-mode} for details
     and warnings.
+
+\item[reconfigure-enabled] -- (scope: global). This directive controls
+whether server will attempt to send \msg{RECONFIGURE} message at
+start or not. It takes one integer parameter with allowed values being
+0 or 1. The default is 0 (disabled).
 
 \item[allow] -- (scope: class). Specifies that clients that belong to
   a specific client class are allowed to use that address class. Takes
@@ -1110,22 +1126,22 @@ fqdn-ddns-address 2001::1
 iface "eth0" {
 
 # assign addresses from this class
- class {
-   pool 2001:db8:1::/64
- }
+  class {
+    pool 2001:db8:1::/64
+  }
 
 # provide DNS server location to the clients
 # also server will use this address to perform DNS Update,
 # so it must be valid and DNS server must accept DNS Updates.
- option dns-server 2000::1
+  option dns-server 2000::1
 
 # provide their domain name
- option domain example.com
+  option domain example.com
 
 # provide fully qualified domain names for clients
 # note that first, second and third entry is reserved
 # for a specific address or a DUID
- option fqdn 1 64
+  option fqdn 1 64
              zebuline.example.com - 2000::1,
              kael.example.com - 2000::2,
              wash.example.com - 0x0001000043ce25b40013d4024bf5,
@@ -1142,8 +1158,7 @@ iface "eth0" {
 # 3 - accept any name client sends, but append specified domain suffix
 # 4 - ignore client's hint, generate name based on his address, append domain name
 
- accept-unknown-fqdn 4 example.org
-
+  accept-unknown-fqdn 4 example.org
 }
 \end{lstlisting}
 
@@ -1152,18 +1167,32 @@ iface "eth0" {
 It is possible to configure dibbler-server to provide vendor-specific
 information options. Since there are no dibbler-specific parameters,
 this implementation is quite flexible. Enterprise number as well as
-content of the option itself can be configured.
+content of the option itself can be configured. In the following
+example, we define a suboption 1027 for vendor-id 4491. The value
+of that option is 0x0013.
 
 \begin{lstlisting}
 # server.conf
 log-level 8
 log-mode precise
 iface "eth1" {
- class {
-   pool 2000::1-2000::ff
- }
+  class {
+    pool 2000::1-2000::ff
+  }
 
- option vendor-spec 1234-0x00002fedc
+  # Vendor-spec option can be specified as a hexstring
+  option vendor-spec 4491-1027-0x0013
+
+  # String format syntax is also allowed
+  # option vendor-spec 4491-1028-"this-is-a-string"
+
+  # The third format supported is IPv6 address
+  # option vendor-spec 4491-1029-2001:db8::1
+
+  # Several vendor-specific options can be coma separated
+  option vendor-spec 4491-2-0xfedc,
+                       4491-1027-0a:0b:0c:0d,
+                       4491-1029-2001:db8::1
 }
 \end{lstlisting}
 
@@ -1185,7 +1214,7 @@ iface "eth1" {
    pool 2000::1-2000::ff
  }
 
- option vendor-spec 1234-0x00002fedc,5678-0x0002aaaa
+ option vendor-spec 4491-1027-0x0013,1234-5678-0xabcd
 }
 \end{lstlisting}
 

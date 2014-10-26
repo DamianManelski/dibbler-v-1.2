@@ -12,7 +12,6 @@
 #include "Portable.h"
 #include "DHCPConst.h"
 #include "OptDUID.h"
-#include "Logger.h"
 
 TOptDUID::TOptDUID(int type, SPtr<TDUID> duid, TMsg* parent)
     :TOpt(type, parent)
@@ -37,8 +36,6 @@ TOptDUID::TOptDUID(int type, const char* buf, int bufsize, TMsg* parent)
     :TOpt(type, parent)
 {
     this->DUID = new TDUID(buf,bufsize);
-    // buf+=DUID->getLen(); 
-    // bufsize-=DUID->getLen();
 }
 
 SPtr<TDUID> TOptDUID::getDUID() const

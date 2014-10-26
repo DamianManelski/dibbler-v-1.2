@@ -122,9 +122,6 @@
     <ClCompile Include="..\IfaceMgr\SocketIPv6.cpp">
       <Filter>Source Files\IfaceMgr</Filter>
     </ClCompile>
-    <ClCompile Include="..\Options\OptVendorData.cpp">
-      <Filter>Source Files\Options</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource-requestor.h">
@@ -179,9 +176,6 @@
       <Filter>Header Files\Options</Filter>
     </ClInclude>
     <ClInclude Include="..\Options\OptInteger.h">
-      <Filter>Header Files\Options</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Options\OptVendorData.h">
       <Filter>Header Files\Options</Filter>
     </ClInclude>
   </ItemGroup>

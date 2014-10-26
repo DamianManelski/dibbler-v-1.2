@@ -24,7 +24,7 @@ class TSrvMsgLeaseQueryData : public TSrvMsg
   public:
     TSrvMsgLeaseQueryData(SPtr<TSrvMsgLeaseQuery> query);
 
-	bool isComplete = false;
+    bool isComplete;
     bool check() {return true; };
     void doDuties() { };
     std::string getName() const;

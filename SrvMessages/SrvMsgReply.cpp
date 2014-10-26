@@ -35,7 +35,7 @@ using namespace std;
  * @param confirm
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgConfirm> confirm)
-    :TSrvMsg(confirm->getIface(),confirm->getAddr(), REPLY_MSG,
+    :TSrvMsg(confirm->getIface(),confirm->getRemoteAddr(), REPLY_MSG,
              confirm->getTransID())
 {
     getORO( (Ptr*)confirm );
@@ -67,7 +67,7 @@ bool TSrvMsgReply::handleConfirmOptions(TOptList & options) {
         Log(Crit) << "Msg received through not configured interface. "
             "Somebody call an exorcist!" << LogEnd;
         IsDone = true;
-        return ADDRSTATUS_UNKNOWN;
+        return false;
     }
 
     EAddrStatus onLink = ADDRSTATUS_YES;
@@ -176,7 +176,8 @@ bool TSrvMsgReply::handleConfirmOptions(TOptList & options) {
  * @param decline
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
-    :TSrvMsg(decline->getIface(),decline->getAddr(), REPLY_MSG, decline->getTransID())
+    :TSrvMsg(decline->getIface(), decline->getRemoteAddr(), REPLY_MSG,
+             decline->getTransID())
 {
     getORO( (Ptr*)decline );
     copyClientID( (Ptr*)decline );
@@ -189,7 +190,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
 
     SPtr<TAddrClient> ptrClient = SrvAddrMgr().getClient(ClientDUID);
     if (!ptrClient) {
-        Log(Warning) << "Received DECLINE from unknown client, DUID=" << *ClientDUID << ". Ignored." << LogEnd;
+        Log(Warning) << "Received DECLINE from unknown client, DUID="
+                     << *ClientDUID << ". Ignored." << LogEnd;
         IsDone = true;
         return;
     }
@@ -264,7 +266,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
             break;
         };
         case OPTION_IA_TA:
-            Log(Info) << "TA address declined. Oh well. Since it's temporary, let's ignore it entirely." << LogEnd;
+            Log(Info) << "TA address declined. It's temporary, so let's ignore it entirely."
+                      << LogEnd;
             break;
         default:
             handleDefaultOption(ptrOpt);
@@ -287,7 +290,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
  * @param rebind
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
-    :TSrvMsg(rebind->getIface(),rebind->getAddr(), REPLY_MSG, rebind->getTransID())
+    :TSrvMsg(rebind->getIface(),rebind->getRemoteAddr(), REPLY_MSG, rebind->getTransID())
 {
     getORO( (Ptr*)rebind );
     copyClientID( (Ptr*)rebind );
@@ -308,7 +311,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
           {
             SPtr<TSrvOptIA_NA> optIA_NA;
             optIA_NA = new TSrvOptIA_NA((Ptr*)ptrOpt,
-                                        rebind->getAddr(), ClientDUID,
+                                        rebind->getRemoteAddr(), ClientDUID,
                                         rebind->getIface(), addrCount, REBIND_MSG,
                                         this);
             if (optIA_NA->getStatusCode() != STATUSCODE_NOBINDING )
@@ -342,7 +345,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
     }
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID, rebind->getAddr(),rebind->getIface(), ORO);
+    appendRequestedOptions(ClientDUID, rebind->getRemoteAddr(),rebind->getIface(), ORO);
     appendAuthenticationOption(ClientDUID);
 
     IsDone = false;
@@ -357,7 +360,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
  * @param release
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRelease> release)
-    :TSrvMsg(release->getIface(),release->getAddr(), REPLY_MSG,
+    :TSrvMsg(release->getIface(),release->getRemoteAddr(), REPLY_MSG,
              release->getTransID())
 {
     getORO( (Ptr*) release );
@@ -537,7 +540,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRelease> release)
 
 // used as RENEW reply
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
-    :TSrvMsg(renew->getIface(),renew->getAddr(), REPLY_MSG, renew->getTransID())
+    :TSrvMsg(renew->getIface(),renew->getRemoteAddr(), REPLY_MSG, renew->getTransID())
 {
     getORO( (Ptr*)renew );
     copyClientID( (Ptr*)renew );
@@ -563,7 +566,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
         case OPTION_IA_NA: {
             SPtr<TSrvOptIA_NA> optIA_NA;
             optIA_NA = new TSrvOptIA_NA((Ptr*)ptrOpt,
-                                        renew->getAddr(), ClientDUID,
+                                        renew->getRemoteAddr(), ClientDUID,
                                         renew->getIface(), addrCount, RENEW_MSG, this);
             Options.push_back((Ptr*)optIA_NA);
             break;
@@ -596,7 +599,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
     }
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID,renew->getAddr(),renew->getIface(), ORO);
+    appendRequestedOptions(ClientDUID,renew->getRemoteAddr(),renew->getIface(), ORO);
     appendAuthenticationOption(ClientDUID);
 
     IsDone = false;
@@ -610,7 +613,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
  * @param request
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRequest> request)
-    :TSrvMsg(request->getIface(), request->getAddr(), REPLY_MSG, request->getTransID())
+    :TSrvMsg(request->getIface(), request->getRemoteAddr(), REPLY_MSG, request->getTransID())
 {
     getORO( (Ptr*)request );
     copyClientID( (Ptr*)request );
@@ -623,7 +626,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRequest> request)
     processOptions((Ptr*)request, false); // be verbose
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID, PeerAddr, Iface, ORO);
+    appendRequestedOptions(ClientDUID, PeerAddr_, Iface, ORO);
     appendAuthenticationOption(ClientDUID);
 
 #ifndef MOD_DISABLE_AUTH
@@ -642,7 +645,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRequest> request)
 ///
 /// @param solicit client's message
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgSolicit> solicit)
-    :TSrvMsg(solicit->getIface(), solicit->getAddr(), REPLY_MSG, solicit->getTransID())
+    :TSrvMsg(solicit->getIface(), solicit->getRemoteAddr(), REPLY_MSG, solicit->getTransID())
 {
     getORO( (Ptr*)solicit );
     copyClientID( (Ptr*)solicit );
@@ -658,7 +661,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgSolicit> solicit)
     Options.push_back(new TOptEmpty(OPTION_RAPID_COMMIT, this));
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID, PeerAddr, Iface, ORO);
+    appendRequestedOptions(ClientDUID, PeerAddr_, Iface, ORO);
     appendAuthenticationOption(ClientDUID);
 
     IsDone = false;
@@ -670,7 +673,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgSolicit> solicit)
 // INFORMATION-REQUEST answer
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
     :TSrvMsg(infRequest->getIface(),
-             infRequest->getAddr(),REPLY_MSG,infRequest->getTransID())
+             infRequest->getRemoteAddr(),REPLY_MSG,infRequest->getTransID())
 {
     getORO( (Ptr*)infRequest );
     copyClientID( (Ptr*)infRequest );
@@ -708,7 +711,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
     }
 
     appendMandatoryOptions(ORO);
-    if ( !appendRequestedOptions(ClientDUID, infRequest->getAddr(),infRequest->getIface(), ORO) ) {
+    if ( !appendRequestedOptions(ClientDUID, infRequest->getRemoteAddr(),
+                                 infRequest->getIface(), ORO) ) {
         Log(Warning) << "No options to answer in INF-REQUEST, so REPLY will not be send." << LogEnd;
         IsDone=true;
         return;
@@ -721,12 +725,35 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
     send();
 }
 
+TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsg> msg, TOptList& options)
+    :TSrvMsg(msg->getIface(), msg->getRemoteAddr(), REPLY_MSG,
+             msg->getTransID()) {
+
+    // Let's just use specified options as they are
+    Options = options;
+
+    // Append client-id
+    SPtr<TOpt> client_id = msg->getOption(OPTION_CLIENTID);
+    if (client_id) {
+        Options.push_back(client_id);
+    }
+
+    // Append server-id
+    SPtr<TOptDUID> ptrSrvID;
+    ptrSrvID = new TOptDUID(OPTION_SERVERID, SrvCfgMgr().getDUID(), this);
+    Options.push_back((Ptr*)ptrSrvID);
+
+    MRT_ = 330;
+    send();
+    IsDone = true;
+}
+
 void TSrvMsgReply::doDuties() {
     IsDone = true;
 }
 
 unsigned long TSrvMsgReply::getTimeout() {
-    unsigned long diff = (int32_t)time(NULL) - FirstTimeStamp_;
+    unsigned long diff = (uint32_t)time(NULL) - FirstTimeStamp_;
     if (diff > SERVER_REPLY_CACHE_TIMEOUT)
         return 0;
     return SERVER_REPLY_CACHE_TIMEOUT - diff;

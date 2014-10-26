@@ -15,7 +15,7 @@
 #include "OptStatusCode.h"
 
 TSrvMsgLeaseQueryDone::TSrvMsgLeaseQueryDone(SPtr<TSrvMsgLeaseQuery> query)
-	:TSrvMsg(query->getIface(), query->getAddr(), LEASEQUERY_DONE_MSG,
+    :TSrvMsg(query->getIface(), query->getRemoteAddr(), LEASEQUERY_DONE_MSG,
 			query->getTransID(), query->Bulk)
 {
 	// append Status code option

@@ -194,11 +194,8 @@
     <ClCompile Include="WinService.cpp">
       <Filter>Source Files\port-win32</Filter>
     </ClCompile>
-    <ClCompile Include="..\RelOptions\RelOptDUID.cpp">
-      <Filter>Source Files\RelOptions</Filter>
-    </ClCompile>
     <ClCompile Include="..\Options\OptDUID.cpp">
-      <Filter>Source Files\RelOptions</Filter>
+      <Filter>Source Files\Options</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -313,11 +310,8 @@
     <ClInclude Include="..\RelTransMgr\RelTransMgr.h">
       <Filter>Header Files\RelTransMgr</Filter>
     </ClInclude>
-    <ClInclude Include="..\RelOptions\RelOptDUID.h">
-      <Filter>Header Files\RelOptions</Filter>
-    </ClInclude>
     <ClInclude Include="..\Options\OptDUID.h">
-      <Filter>Header Files\RelOptions</Filter>
+      <Filter>Header Files\Options</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

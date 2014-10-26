@@ -41,6 +41,7 @@
     2008-09: PID is now stored in pid_t type, not int
     2008-09: Timezone implementation and fixes
     2008-09: Syslog support
+    2014-02: Shutdown improvement on Linux
 
   - Michal Kowalczuk <michal(at)kowalczuk.eu>
     2007-12: Authentication and authorization
@@ -67,9 +68,6 @@
 
   - Tomasz Gierszewski <tomag(at)eti(dot)pg(dot)gda(dot)pl>
     2011-07: NetBSD compilation fix.
-
-  - Karol Podolski <podol(at)ds(dot)pg(dot)gda(dot)pl>
-    2011-08: Initial, partial implementation of bulk leasequery.
 
   - Harro Haan <hrhaan(at)gmail(dot)com>
     2011-10: fix alignment errors (ARMv5)
@@ -111,6 +109,22 @@
   - Hernan Martinez <hernan(dot)c(dot)martinez(at)gmail(dot)com>
     2013-10: Service dependency for Windows Vista and newer fix
     2013-10: Script calling fix.
+    2013-11: Migration to Visual Studio 2013
+    2013-11: Fix for reconfigure-key
+    2013-12: Win32: detection of admin privileges
+    2014-02: Win32: Proper shutdown from Microsft Mgmt Console (bug #162)
+    2014-02: Vendor-spec info option with IPv6 address in it
+
+  - Shine- (https://github.com/Shine-)
+    2014-06: Address renewals on WIN32 systems.
+
+  - Maciek Fijalkowski (macfij7(at)wp(dot)pl)
+    2014-06: Prefix scope added to the client parser.
+    2014-07: Prefix sanity checks on the client side.
+    2014-09: More thorough sanity checks for multiple IA_PDs on the client side.
+
+  - Justin Cormack (justin(at)specialbusservice(dot)com)
+    2014-09: Added missing includes for NetBSD (and probably other BSDs)
 
   Dibbler uses poslib library to communicate with DNS servers (DNS Update mechanism).
   Poslib is written by Meilof Veeningen <meilof@users.sourceforge.net>

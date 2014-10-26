@@ -13,7 +13,7 @@
 #ifndef PORTABLE_H
 #define PORTABLE_H
 
-#define DIBBLER_VERSION "1.0.0RC1"
+#define DIBBLER_VERSION "1.0.0"
 
 #define DIBBLER_COPYRIGHT1 "| Dibbler - a portable DHCPv6, version " DIBBLER_VERSION
 #define DIBBLER_COPYRIGHT2 "| Authors : Tomasz Mrugalski<thomson(at)klub.com.pl>,Marek Senderski<msend(at)o2.pl>"
@@ -22,20 +22,15 @@
 
 #ifdef WIN32
 #include <winsock2.h>
+#define strcasecmp strcmpi
+#define snprintf _snprintf
 #endif
 #if defined(LINUX) || defined(BSD)
 #include <arpa/inet.h>
 #endif
 
-#ifdef WIN32
-#define strcasecmp strcmpi
-#define snprintf _snprintf
-
-#endif
-
-#if defined (BSD) || defined(SUNOS) || defined(WIN32)
 #include <stdint.h>
-#endif
+#include <unistd.h>
 
 /* this should look like this: 
 uint16_t readUint16(uint8_t* buf);

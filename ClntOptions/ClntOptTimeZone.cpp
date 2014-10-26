@@ -32,7 +32,8 @@ bool TClntOptTimeZone::doDuties() {
     std::string reason = "trying to set time zone.";
     int ifindex = Parent->getIface();
 
-    if (!this->DUID) {
+    SPtr<TOptDUID> duid = (Ptr*)Parent->getOption(OPTION_SERVERID);
+    if (!duid) {
 	Log(Error) << "Unable to find proper DUID while " << reason << LogEnd;
 	return false;
     }
@@ -47,7 +48,7 @@ bool TClntOptTimeZone::doDuties() {
     SPtr<TClntCfgIface> cfgIface = ClntCfgMgr().getIface(ifindex);
     cfgIface->setTimezoneState(STATE_CONFIGURED);
 
-    return iface->setTimezone(DUID, Parent->getAddr(), Str);
+    return iface->setTimezone(duid->getDUID(), Parent->getRemoteAddr(), Str);
 }
 
 /// @todo remove this

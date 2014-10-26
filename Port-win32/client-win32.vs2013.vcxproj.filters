@@ -487,6 +487,9 @@
     <ClInclude Include="..\CfgMgr\StationRange.h">
       <Filter>Header Files\CfgMgr</Filter>
     </ClInclude>
+    <ClInclude Include="..\sources\Options\Opt.h">
+      <Filter>Header Files\Options</Filter>
+    </ClInclude>
     <ClInclude Include="..\Options\OptAddr.h">
       <Filter>Header Files\Options</Filter>
     </ClInclude>
@@ -780,9 +783,6 @@
     </ClInclude>
     <ClInclude Include="..\nettle\sha.h">
       <Filter>Header Files\nettle</Filter>
-    </ClInclude>
-    <ClInclude Include="..\Options\Opt.h">
-      <Filter>Header Files\Options</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

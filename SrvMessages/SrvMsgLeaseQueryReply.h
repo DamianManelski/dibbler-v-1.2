@@ -31,7 +31,7 @@ class TSrvMsgLeaseQueryReply : public TSrvMsg
     bool queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg);
     void appendClientData(SPtr<TAddrClient> cli);
 
-	void  getAllClientDUIDRelatedBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr> linkaddr = NULL);
+    void  getAllClientDUIDRelatedBindings(SPtr<TDUID> opt);
 	void  getAllRemoteIdRelatedBindings(SPtr<TOptVendorData> remoteID);
 	void  getAllRelayIdRelatedBindings(SPtr<TDUID> relayId);
 	void  getAllRelayLinkAddrRelatedBindings(SPtr<TIPv6Addr> linkaddr);

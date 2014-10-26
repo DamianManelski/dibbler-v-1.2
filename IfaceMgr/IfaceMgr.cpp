@@ -147,11 +147,13 @@ SPtr<TIfaceIface> TIfaceMgr::getIfaceBySocket(int fd) {
 /// @param time listens for time seconds
 /// @param buf buffer
 /// @param bufsize buffer size
-/// @param peer informations about sender
+/// @param peer [out] sender address
+/// @param myaddr [out] local IPv6 address
 ///
 /// @return socket descriptor (or negative values for errors)
 int TIfaceMgr::select(unsigned long time, char *buf,
-                      int &bufsize, SPtr<TIPv6Addr> peer, bool tcpClient) {
+                      int &bufsize, SPtr<TIPv6Addr> peer,
+                      SPtr<TIPv6Addr> myaddr,  bool tcpClient) {
     struct timeval czas;
     int result;
     if (time > DHCPV6_INFINITY/2)
@@ -195,7 +197,8 @@ int TIfaceMgr::select(unsigned long time, char *buf,
     if (result<0) {
         char buf[512];
         strncpy(buf, strerror(errno),512);
-        Log(Debug) << "Failed to read sockets (select() returned " << result << "), error=" << buf << LogEnd;
+        Log(Debug) << "Failed to read sockets (select() returned " << result
+                   << "), error=" << buf << LogEnd;
         return -1;
     }
 
@@ -209,16 +212,13 @@ int TIfaceMgr::select(unsigned long time, char *buf,
             sock->getFD();
             if (FD_ISSET(sock->getFD(),&fds)) {
                 found = true;
-                Log(Info) << "Socket found:" << sock->getFD() <<LogEnd;
                 break;
-            } else {
-                Log(Info) << "Socket isn't set but is present" << sock->getFD() <<LogEnd;
             }
         }
     }
 
     if (!found) {
-        Log(Error) << "Seems like internal error. Unable to find any socket with incoming data." << LogEnd;
+        Log(Error) << "Internal error. Can't find any socket with incoming data." << LogEnd;
         return -1;
     }
 
@@ -229,28 +229,13 @@ int TIfaceMgr::select(unsigned long time, char *buf,
     stype = getsOpt(sock->getFD());
     if(stype != -1) {
         if (stype==SOCK_DGRAM) {
-			result = sock_recv(sock->getFD(), myPlainAddr, peerPlainAddr, buf, bufsize);
-			char peerAddrPacked[16];
-			char myAddrPacked[16];
-			inet_pton6(peerPlainAddr,peerAddrPacked);
-			inet_pton6(myPlainAddr,myAddrPacked);
-			peer->setAddr(peerAddrPacked);
-            #ifndef WIN32
-                // check if we've received data addressed to us. There's problem with sockets binding.
-                // If there are 2 open sockets (one bound to multicast and one to global address),
-                // each packet sent on multicast address is also received on unicast socket.
-                char anycast[16] = {0};
-
-                if (!iface->flagLoopback()
-                    && memcmp(sock->getAddr()->getAddr(), myAddrPacked, 16)
-                    && memcmp(sock->getAddr()->getAddr(), anycast, 16) ) {
-                        Log(Debug) << "Received data on address " << myPlainAddr << ", expected "
-                               << *sock->getAddr() << ", message ignored." << LogEnd;
-                        bufsize = 0;
-                        return 0;
-                }
-            #endif
-            this->isTcp=false;
+    result = sock_recv(sock->getFD(), myPlainAddr, peerPlainAddr, buf, bufsize);
+    char peerAddrPacked[16];
+    char myAddrPacked[16];
+    inet_pton6(peerPlainAddr,peerAddrPacked);
+    inet_pton6(myPlainAddr,myAddrPacked);
+    peer->setAddr(peerAddrPacked);
+    myaddr->setAddr(myAddrPacked);
         } else if (stype==SOCK_STREAM) {
             if(!tcpClient) {
                 if(!this->isTcpSet) {
@@ -270,10 +255,6 @@ int TIfaceMgr::select(unsigned long time, char *buf,
             }
             this->isTcp = true;
         }
-
-    } else {
-        Log(Error) << "Seems like internal error. Unable to find any socket with incoming data." << LogEnd;
-        return 0;
     }
 
     if (result==-1) {
@@ -491,8 +472,8 @@ void TIfaceMgr::notifyScripts(const std::string& scriptName, SPtr<TMsg> question
     tmp.str("");
 
     string remote;
-    if (reply->getAddr()) {
-      remote = reply->getAddr()->getPlain();
+    if (reply->getRemoteAddr()) {
+      remote = reply->getRemoteAddr()->getPlain();
     } else {
       remote = string(ALL_DHCP_RELAY_AGENTS_AND_SERVERS);
     }
