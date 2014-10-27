@@ -150,6 +150,10 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
     this->Port = port;
     this->Status = STATE_NOTCONFIGURED;
 
+    // Let's remember the address. Otherwise the destructor will segfault when
+    // trying to print out which socket is being closed.
+    this->Addr = addr;
+
     // create socket using accept
     if (this->baseFD > 0) {
         Log(Debug) << "Dupa1" << LogEnd;
@@ -162,7 +166,6 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
         this->Status = STATE_CONFIGURED;
     } else {
 
-        this->Addr = addr;
         // create socket in standard way
         Log(Debug) << "Dupa2" << LogEnd;
 
