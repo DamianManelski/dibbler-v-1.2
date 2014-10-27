@@ -145,7 +145,7 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
     int sock;
     Log(Debug) << "Dupa" << LogEnd;
     // store info about this socket
-   // strncpy(this->Iface,iface,MAX_IFNAME_LENGTH);
+    strncpy(this->Iface, iface, MAX_IFNAME_LENGTH);
     this->IfaceID = ifaceid;
     this->Port = port;
     this->Status = STATE_NOTCONFIGURED;
