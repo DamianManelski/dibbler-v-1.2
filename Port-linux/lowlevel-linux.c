@@ -830,7 +830,10 @@ extern int sock_add_tcp (char * ifacename,int ifaceid, char * addr, int port) {
     char port_char[6];
     char * tmp;
     int connectionNumber =1;
-    ifaceid = 6;
+
+    // Let's convert specified port into plain text, so getaddrinfo returns
+    // something reasonable.
+    snprintf(port_char, 6, "%d", port);
 
 //#ifdef LOWLEVEL_DEBUG
     printf("\n ### iface: %s(id=%d), addr=%s, port=%d \n", ifacename,ifaceid, addr, port);

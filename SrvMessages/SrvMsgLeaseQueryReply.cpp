@@ -192,6 +192,10 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 		do{
 			lqData = new TSrvMsgLeaseQueryData(queryMsg);
 			if (lqData){
+                                // @todo: Fix this.
+                                // This code below is broken. What if blqClntsLst is empty?
+                                // blqClntsLst.getFirst() will return NULL, and we'll pass
+                                // that NULL to appendClientData() which will end is a segfault.
 				isBlqDataExist = true;
 				blqClntsLst.first();
 				lqData->appendClientData(blqClntsLst.getFirst());
@@ -236,6 +240,7 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		if (!this->blqClntsLst.count()) {
 			Log(Warning) << "LQ: Assignment for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+                        isComplete = true; // There's no more data to be sent
 			return true;
 		}
 		else {
@@ -258,10 +263,12 @@ bool TSrvMsgLeaseQueryReply::queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLease
 		if (!cli) {
 			Log(Warning) << "LQ: Assignment for client addr=" << addr->getAddr()->getPlain() << " not found." << LogEnd;
 			Options.push_back(new TOptStatusCode(STATUSCODE_NOTCONFIGURED, "No binding for this address found.", this));
+                        isComplete = true; // There's no more data to be sent
 			return true;
 		}
 
 		appendClientData(cli);
+                isComplete = true; // There's no more data to be sent
 	}
 
     return true;
