@@ -817,7 +817,6 @@ void Rerror(char *msg) {
 }
 
 extern int sock_add_tcp (char * ifacename,int ifaceid, char * addr, int port) {
-    printf("\n Dupa");
 
     int on = 1,result=0;
 

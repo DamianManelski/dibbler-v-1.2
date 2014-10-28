@@ -143,7 +143,6 @@ int TIfaceSocket::createSocket(char * iface, int ifaceid, SPtr<TIPv6Addr> addr,
 int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> addr, int port)
 {
     int sock;
-    Log(Debug) << "Dupa" << LogEnd;
     // store info about this socket
     strncpy(this->Iface, iface, MAX_IFNAME_LENGTH);
     this->IfaceID = ifaceid;
@@ -156,7 +155,6 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
 
     // create socket using accept
     if (this->baseFD > 0) {
-        Log(Debug) << "Dupa1" << LogEnd;
         char peerPlainAddr[48];
         char peerAddrPacked[16];
         this->accept(addr,peerPlainAddr);
@@ -167,12 +165,9 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
     } else {
 
         // create socket in standard way
-        Log(Debug) << "Dupa2" << LogEnd;
 
         addr->getAddr();
-        Log(Debug) << "Dupa3" << LogEnd;
         addr->getPlain();
-        Log(Debug) << "Dupa4" << LogEnd;
         sock = sock_add_tcp(this->Iface, this->IfaceID, addr->getPlain(),this->Port);
         if (sock<0) {
             printError(sock, iface, ifaceid, addr, port);
