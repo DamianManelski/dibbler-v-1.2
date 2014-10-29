@@ -186,8 +186,10 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 		this->send();
 	}
 
-
-	if (!isComplete) {
+        // We must not enter this loop if blqClntsLst is empty. See @todo below.
+        // This was causing segfault when sending query by client-id for a client
+        // that was not known to the server.
+	if (!isComplete && !blqClntsLst.empty()) {
 		SPtr<TSrvMsgLeaseQueryData> lqData;
 		do{
 			lqData = new TSrvMsgLeaseQueryData(queryMsg);
