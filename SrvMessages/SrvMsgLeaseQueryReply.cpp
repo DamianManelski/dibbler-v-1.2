@@ -186,8 +186,10 @@ bool TSrvMsgLeaseQueryReply::answerBlq(SPtr<TSrvMsgLeaseQuery> queryMsg) {
 		this->send();
 	}
 
-
-	if (!isComplete) {
+        // We must not enter this loop if blqClntsLst is empty. See @todo below.
+        // This was causing segfault when sending query by client-id for a client
+        // that was not known to the server.
+	if (!isComplete && !blqClntsLst.empty()) {
 		SPtr<TSrvMsgLeaseQueryData> lqData;
 		do{
 			lqData = new TSrvMsgLeaseQueryData(queryMsg);
@@ -296,6 +298,9 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	// search for client
 	if (this->Bulk) {
 		SPtr<TAddrClient> cli;
+
+                /// @todo: This is requestor's DUID. The client's duid the requestor
+                /// is asking about is in LQQuery option.
 		this->getAllClientDUIDRelatedBindings(duid);
 
 		if (!this->blqClntsLst.count()) {
