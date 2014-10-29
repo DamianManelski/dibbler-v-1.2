@@ -298,6 +298,9 @@ bool TSrvMsgLeaseQueryReply::queryByClientID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeas
 	// search for client
 	if (this->Bulk) {
 		SPtr<TAddrClient> cli;
+
+                /// @todo: This is requestor's DUID. The client's duid the requestor
+                /// is asking about is in LQQuery option.
 		this->getAllClientDUIDRelatedBindings(duid);
 
 		if (!this->blqClntsLst.count()) {
