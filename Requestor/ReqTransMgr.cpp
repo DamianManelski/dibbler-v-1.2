@@ -219,17 +219,13 @@ bool ReqTransMgr::CreateNewTCPSocket(char *dstAddr)
     if (!llAddr) {
         Log(Error) << "Interface " << Iface->getFullName() << " does not have link-layer address. Weird." << LogEnd;
         return false;
-    }
+    }  
 
-    Log(Info) << "llAddr:"<< llAddr << LogEnd;
-    Log(Info) << "dstAddr:"<< dstAddr << LogEnd;
-    SPtr<TIPv6Addr> ll = new TIPv6Addr(llAddr);
     SPtr<TIPv6Addr> gl = new TIPv6Addr();
-	Log(Info) << "Link local addressL" << ll->getPlain()<< LogEnd;
-	
 
-    Log(Crit) << "TCP Socket creation or binding failed (link-local address)." << LogEnd;
+    Log(Debug) << "TCP Socket creation or binding failed (link-local address)." << LogEnd;
     Log(Info) << "Trying on global address..." << LogEnd;
+
     //get global address
     Iface->firstGlobalAddr();
     gl=Iface->getGlobalAddr();

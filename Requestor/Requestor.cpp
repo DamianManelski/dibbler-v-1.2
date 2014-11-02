@@ -37,15 +37,7 @@ void printHelp()
          << "-dstaddr 2000::1 - destination address (by default it is ff02::1:2)" << endl;
 }
 
-int parseMultiQueryCmd(char * inputString ) {
-
-    /*QUERY_BY_ADDRESS
-    QUERY_BY_CLIENT_ID = 2,
-    QUERY_BY_RELAY_ID = 3,
-    QUERY_BY_LINK_ADDRESS = 4,
-    QUERY_BY_REMOTE_ID = 5*/
-     Log( Debug) << "LOGParseM" << LogEnd;
-     Log( Debug) << "input string:" << inputString << LogEnd;
+int parseMultiQueryCmd(char * inputString) {
 
     if (!strncmp(inputString,"ADDRESS", 7)) {
         return 1;
@@ -94,6 +86,7 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
 
     int enterpriseNumber =0, tmpOptCode=0, requestCount=0;
     bool multiplyQ = false;
+
     int timeout  = 60; // default timeout value
     for (int i=1; i<=argc; i++) {
         if ((!strncmp(argv[i],"-addr", 5)) && (strlen(argv[i])==5)) {
@@ -124,12 +117,10 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                 ++i;
                 while (i < argc) {
 
-                   /* if ( strlen(argv[i]) < 5 ) {
-						break;
-                    }*/
-
                     tmpOptCode = parseMultiQueryCmd(argv[i]);
+
                     if(tmpOptCode>0) {
+                        a->queryName = argv[i];
                         switch (tmpOptCode) {
 
                         case QUERY_BY_ADDRESS:
@@ -201,28 +192,24 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
 								requestCount++;
 								continue;
 							}
-							
                             break;
 
                          default:
                             break;
-
                         }
                       }
                     ++i;
                 };
-
                 //zeroing count of multiple request
                 a->requestCount=requestCount;
-                Log(Info) << "multiple: " << multiplyQ << "requestCount:" << a->requestCount << endl;
                 if (multiplyQ && !requestCount) {
-                    Log(Error) << "Unable to parse command-line. -bulk used, but there is no more parameter to." << LogEnd;
+                    Log(Error) << "Unable to parse command-line. -bulk used, but there is no more parameter to parse" << LogEnd;
                     return false;
                 }
             }
-            if (argc == i) {
-                Log(Error) << "Unable to parse command-line. -bulk used, but actual remoteId is missing." << LogEnd;
-                //return false;
+            else if (argc == i) {
+                Log(Error) << "Unable to parse command-line. -bulk used, but there is no more parameter to parse" << LogEnd;
+                return false;
             }
             bulk = argv[++i];
             continue;
@@ -252,7 +239,6 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                 Log(Error) << "Unable to parse command-line. -dstaddr used, but actual destination address is missing." << LogEnd;
             }
             dstaddr = argv[++i];
-            Log(Info) << "DstAddr:" << dstaddr<< LogEnd;
             continue;
         }
 
@@ -302,16 +288,6 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
     return true;
 }
 int EmptyBulkQueue(ReqCfgMgr *a ) {
-    /* a->addr  = addr;
-    a->duid  = duid;
-    a->bulk  = bulk;
-    a->iface = iface;
-    a->timeout= timeout;
-    a->dstaddr = dstaddr;
-    a->linkAddr = linkAddr;
-    a->remoteId = remoteId;
-    a->enterpriseNumber = enterpriseNumber;*/
-
 
     if (a->addr) {
         a->queryType = QUERY_BY_ADDRESS;
@@ -370,6 +346,16 @@ int main(int argc, char *argv[])
         Log(Crit) << "Aborted. Invalid command-line parameters or help called." << LogEnd;
         printHelp();
         return -1;
+    } else {
+        Log(Info) << "Proccessing query by " << a.queryName << " with parameters:" << LogEnd;
+        Log(Info) << "interface name: "<< a.iface  << LogEnd;
+        Log(Info) << "destination address: "<< a.dstaddr  << LogEnd;
+        Log(Info) << "querying address: "<< a.addr << LogEnd;
+        Log(Info) << "querying client duid: "<< a.clientId << LogEnd;
+        Log(Info) << "querying relay duid: "<< a.relayId << LogEnd;
+        Log(Info) << "querying remote duid:" << a.remoteId <<" with enterprise number: "<< a.enterpriseNumber<< LogEnd;
+        Log(Info) << "querying dhcp relay link address: " << a.linkAddr << LogEnd;
+        Log(Info) << "timeout: " << a.timeout << LogEnd;
     }
 
     TIfaceMgr   * ifaceMgr = new TIfaceMgr(REQIFACEMGR_FILE, true);
@@ -405,7 +391,7 @@ int main(int argc, char *argv[])
             return LOWLEVEL_ERROR_SOCKET;
         }
 
-        Log(Debug) << "RequestCount:" << a.requestCount << LogEnd;
+        Log(Debug) << "Queries left to procced:" << a.requestCount << LogEnd;
 		while (actualRequestNumber != a.requestCount) {
 
 			if (!EmptyBulkQueue(&a)) {
