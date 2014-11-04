@@ -160,7 +160,8 @@ int inet_pton6(const char *src, char * dst)
 char * inet_ntop4(const char * src, char * dst)
 {
 	char tmp[sizeof "255.255.255.255"];
-	sprintf(tmp,"%u.%u.%u.%u", src[0], src[1], src[2], src[3]);
+	sprintf(tmp,"%u.%u.%u.%u", (const unsigned char)src[0], (const unsigned char)src[1],
+                (const unsigned char)src[2], (const unsigned char)src[3]);
 	return strcpy(dst, tmp);
 }
 
@@ -341,6 +342,17 @@ uint64_t ntohll(uint64_t n) {
 #endif
 }
 
+
+uint8_t readUint8(const BUFFER_TYPE* buf) {
+    return buf[0];
+}
+
+BUFFER_TYPE* writeUint8(BUFFER_TYPE* buf, uint8_t octet) {
+    buf[0] = octet;
+    return buf + sizeof(uint8_t);
+}
+
+
 /// @brief reads uint16_t from buffer in a portable way
 ///
 /// Buffer must be at least 2 bytes long.
@@ -433,4 +445,9 @@ BUFFER_TYPE * writeUint64(BUFFER_TYPE * buf, uint64_t qword) {
     buf[6] = (uint8_t)( (qword >> 8) & 0xff );
     buf[7] = (uint8_t)( (qword) & 0xff );
     return buf + sizeof(uint64_t);
+}
+
+BUFFER_TYPE* writeData(BUFFER_TYPE* buf,  BUFFER_TYPE* data, size_t len) {
+    memcpy(buf, data, len);
+    return buf + len;
 }

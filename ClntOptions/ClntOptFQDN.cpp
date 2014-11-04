@@ -8,6 +8,7 @@
  */
 
 #include "ClntOptFQDN.h"
+#include "OptDUID.h"
 #include "Logger.h"
 
 using namespace std;
@@ -35,6 +36,11 @@ bool TClntOptFQDN::doDuties() {
     }
 	
     string reason = "trying to set FQDN.";
+    if (!Parent) {
+        Log(Error) << "Unable to set FQDN: option parent not set." << LogEnd;
+        return false;
+    }
+
     int ifindex = this->Parent->getIface();
     SPtr<TIPv6Addr> addr = this->Parent->getAddr();
     
@@ -45,7 +51,8 @@ bool TClntOptFQDN::doDuties() {
 		   << " while " << reason << LogEnd;
 	return false;
     }
-    
+
+
     if (!this->DUID) {
 	Log(Error) << "Unable to find proper DUID while " << reason << LogEnd;
 	return false;

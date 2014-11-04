@@ -21,6 +21,7 @@
 class TSrvMsgLeaseQueryReply : public TSrvMsg
 {
   public:
+	bool isComplete;
     TSrvMsgLeaseQueryReply(SPtr<TSrvMsgLeaseQuery> query);
 
     bool queryByAddress(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg);
@@ -30,13 +31,24 @@ class TSrvMsgLeaseQueryReply : public TSrvMsg
     bool queryByRelayID(SPtr<TSrvOptLQ> q, SPtr<TSrvMsgLeaseQuery> queryMsg);
     void appendClientData(SPtr<TAddrClient> cli);
 
+	void  getAllClientDUIDRelatedBindings(SPtr<TDUID> opt, SPtr<TIPv6Addr> linkaddr = NULL);
+	void  getAllRemoteIdRelatedBindings(SPtr<TOptVendorData> remoteID);
+	void  getAllRelayIdRelatedBindings(SPtr<TDUID> relayId);
+	void  getAllRelayLinkAddrRelatedBindings(SPtr<TIPv6Addr> linkaddr);
+	void  getAllAddrBindings(SPtr<TIPv6Addr> addr);
+	
     bool answer(SPtr<TSrvMsgLeaseQuery> query);
+	bool answerBlq(SPtr<TSrvMsgLeaseQuery> query);
     bool check();
     void doDuties();
     bool validateMsg(SPtr<TSrvMsgLeaseQuery> queryMsg);
     unsigned long getTimeout();
     std::string getName() const;
     ~TSrvMsgLeaseQueryReply();
+
+	//Store ptr to client related with the same parameter (for example the same DUID)
+	List(TAddrClient) blqClntsLst;
+	List(TIPv6Addr) blqClntAddrLst;
 };
 
 #endif /* SRVMSGLEASEQUERYREPLY_H */

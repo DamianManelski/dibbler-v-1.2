@@ -32,23 +32,24 @@ class TSrvMsg : public TMsg
 {
 public:
     struct RelayInfo {
+        int Hop_;
         SPtr<TIPv6Addr> LinkAddr_;
         SPtr<TIPv6Addr> PeerAddr_;
-        SPtr<TSrvOptInterfaceID> InterfaceID_;
         size_t Len_;
-        int Hop_;
-        List(TOptGeneric) EchoList_;
+        TOptList EchoList_;
     };
 
     TSrvMsg(int iface,  SPtr<TIPv6Addr> addr, char* buf,  int bufSize);
-    TSrvMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID);
+    TSrvMsg(int iface, SPtr<TIPv6Addr> addr, int msgType, long transID,bool isBulk=false);
+
     //following constructor calls for tcp messages
     TSrvMsg(int iface, SPtr<TIPv6Addr> addr,char * buf,int bufSize,int msgType);
-
     void copyRelayInfo(SPtr<TSrvMsg> q);
     void copyAAASPI(SPtr<TSrvMsg> q);
     void copyRemoteID(SPtr<TSrvMsg> q);
     bool copyClientID(SPtr<TMsg> donor);
+	void copyRelayId(SPtr<TSrvMsg> q);
+	void copyRelayLinkAddress(SPtr<TSrvMsg> q);
 
     void appendAuthenticationOption(SPtr<TDUID> duid);
     bool appendMandatoryOptions(SPtr<TOptOptionRequest> oro, bool includeClientID = true);
@@ -58,33 +59,61 @@ public:
     bool appendVendorSpec(SPtr<TDUID> duid, int iface, int vendor, SPtr<TOptOptionRequest> reqOpt);
     void appendStatusCode();
 
+#ifndef MOD_DISABLE_AUTH
+    void appendReconfigureKey();
+    bool validateReplayDetection();
+#endif
+
     /// @todo: modify this to use RelayInfo structure
     void addRelayInfo(SPtr<TIPv6Addr> linkAddr,
                       SPtr<TIPv6Addr> peerAddr,
                       int hop,
-                      SPtr<TSrvOptInterfaceID> interfaceID,
-                      List(TOptGeneric) echoList);
-    const std::vector<RelayInfo>& getRelayInfo() const { return RelayInfo_; };
-
-    /// @todo: redundant (can be replaced with getRelayInfo().size())
-    int getRelayCount();
+                      const TOptList& echoList);
 
     bool releaseAll(bool quiet);
 
-    bool validateReplayDetection();
 
     virtual bool check() = 0;
 
+    /// @todo: get out with this shit
     void setRemoteID(SPtr<TOptVendorData> remoteID);
     SPtr<TOptVendorData> getRemoteID();
 
+	void setRelayID(SPtr<TDUID> relayId);
+	SPtr<TDUID> getRelayId();
+
+	void setRelayLinkAddr(SPtr<TIPv6Addr> linkAddr);
+	SPtr<TIPv6Addr> getRelayLinkAddr();
+
     unsigned long getTimeout();
     void doDuties();
-    void send();
+    void send(int dstPort = 0);
 
     void processOptions(SPtr<TSrvMsg> clientMsg, bool quiet);
     SPtr<TDUID> getClientDUID();
     SPtr<TIPv6Addr> getClientPeer();
+
+    /// @brief sets message type (used in testing only)
+    ///
+    /// @param type type of a message (RELAY_FORW or RELAY_REPL)
+    inline void setMsgType(uint8_t type) {
+      forceMsgType_ = type;
+    }
+
+    /// @brief clears relay information (used in testing only)
+    void clearRelayInfo() {
+        RelayInfo_.clear();
+    }
+
+    /// relay information
+    ///
+    /// Let's make this public, so there are issues with reference
+    /// being returned and then used past them message lifetime
+    std::vector<RelayInfo> RelayInfo_;
+
+    void setPhysicalIface(int iface);
+    int  getPhysicalIface() const;
+
 
 protected:
     void setDefaults();
@@ -113,15 +142,21 @@ protected:
 
     int storeSelfRelay(char * buf, uint8_t relayLevel, ESrvIfaceIdOrder order);
 
-    // relay information
-    std::vector<RelayInfo> RelayInfo_;
-
     unsigned long FirstTimeStamp_; // timestamp of first message transmission
     unsigned long MRT_;            // maximum retransmission timeout
 
     /// @todo: this should be moved to RelayInfo_ structure
     SPtr<TOptVendorData> RemoteID; // this MAY be set, if message was recevied via relay
                                    // AND relay appended RemoteID
+
+	SPtr<TDUID> RelayID;
+	SPtr<TIPv6Addr> RelayLinkAddr;
+
+    /// used in tests only. If non-zero, send message type is set to that type
+    uint8_t forceMsgType_;
+
+    /// physical interface from/to which message was received/should be sent
+    int physicalIface_;
 };
 
 #endif
