@@ -52,6 +52,32 @@ int parseMultiQueryCmd(char * inputString) {
     }
     return 0;
 }
+
+bool validateDUID(char * duid) {
+
+	size_t size = strlen(duid);
+
+	if (size < 2 || size > 128)
+	{
+		return false;
+	}
+	for (int i = 0; i<size; i++)
+	{
+		if ((i + 1) % 3 == 0 && i != 0)
+		{
+			if (!(duid[i] == ':'))
+				return false;
+			else if (i == (size - 1))
+				return false;
+		}
+		else if (i == 0 || i % 2 != 0)
+		{
+			if (!isxdigit(duid[i]))
+				return false;
+		}
+	}
+	return true;
+}
 bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
 {
     char * addr    = 0;
@@ -136,7 +162,13 @@ bool parseCmdLine(ReqCfgMgr *a, int argc, char *argv[])
                             if (argc == i) {
                                 Log(Error) << "Unable to parse command-line. -bulk used, but actual DUID is missing." << LogEnd;
                                 return false;
-                            }requestCount++;
+                            }
+							
+			    if (!validateDUID(duid)){
+				Log(Error) << "Unable to parse command-line. CLIENT_ID option used with wrong format of client DUID." << LogEnd;
+				return false;
+			    }			
+			    requestCount++;
                             break;
                         case QUERY_BY_LINK_ADDRESS:
                             linkAddr=argv[++i];
