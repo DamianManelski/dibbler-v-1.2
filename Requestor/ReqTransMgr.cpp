@@ -460,7 +460,7 @@ bool ReqTransMgr::WaitForRsp(int &messageType)
     stype = getsOpt(Socket->getFD());
     if(stype != -1) {
         if (stype==SOCK_STREAM) {
-            sockFD = this->IfaceMgr->select(CfgMgr->timeout, buf, bufLen,myAddr, sender,true);
+            sockFD = this->IfaceMgr->select(CfgMgr->timeout, buf, bufLen,myAddr, true);
         } else if (stype==SOCK_DGRAM)  {
     sockFD = this->IfaceMgr->select(CfgMgr->timeout, buf, bufLen,myAddr, sender);
         }
