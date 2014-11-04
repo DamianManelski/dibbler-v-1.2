@@ -145,9 +145,7 @@ bool ReqTransMgr::SendMsg()
         SPtr<TIPv6Addr> a = new TIPv6Addr(CfgMgr->addr, true);
         SPtr<TReqOptAddr>  optAddr = new TReqOptAddr(OPTION_IAADDR, a, msg);
         optAddr->storeSelf(buf+bufLen);
-        bufLen += optAddr->getSize();
-        delete optAddr;
-        
+        bufLen += optAddr->getSize();        
     } else if (CfgMgr->duid) {
         Log(Debug) << "Creating DUID-based query. Asking for " << CfgMgr->duid << " DUID." << LogEnd;
         // DUID based query
@@ -221,17 +219,13 @@ bool ReqTransMgr::CreateNewTCPSocket(char *dstAddr)
     if (!llAddr) {
         Log(Error) << "Interface " << Iface->getFullName() << " does not have link-layer address. Weird." << LogEnd;
         return false;
-    }
+    }  
 
-    Log(Info) << "llAddr:"<< llAddr << LogEnd;
-    Log(Info) << "dstAddr:"<< dstAddr << LogEnd;
-    SPtr<TIPv6Addr> ll = new TIPv6Addr(llAddr);
     SPtr<TIPv6Addr> gl = new TIPv6Addr();
-	Log(Info) << "Link local address£" << ll->getPlain()<< LogEnd;
-	
 
-    Log(Crit) << "TCP Socket creation or binding failed (link-local address)." << LogEnd;
+    Log(Debug) << "TCP Socket creation or binding failed (link-local address)." << LogEnd;
     Log(Info) << "Trying on global address..." << LogEnd;
+
     //get global address
     Iface->firstGlobalAddr();
     gl=Iface->getGlobalAddr();
@@ -241,9 +235,9 @@ bool ReqTransMgr::CreateNewTCPSocket(char *dstAddr)
         return false;
     }
 
-    SPtr<TIPv6Addr> dstAddrTmp = new TIPv6Addr(dstAddr,true);
+    myAddr = new TIPv6Addr(dstAddr,true);
 
-    if(!Iface->addTcpSocket(dstAddrTmp,port,0)) {
+    if(!Iface->addTcpSocket(myAddr,port,0)) {
         Log(Crit) << "TCP Socket creation or binding failed (global address)." << LogEnd;
         return false;
     } else {
@@ -466,9 +460,9 @@ bool ReqTransMgr::WaitForRsp(int &messageType)
     stype = getsOpt(Socket->getFD());
     if(stype != -1) {
         if (stype==SOCK_STREAM) {
-            sockFD = this->IfaceMgr->select(CfgMgr->timeout, buf, bufLen, sender,true);
+            sockFD = this->IfaceMgr->select(CfgMgr->timeout, buf, bufLen,myAddr, sender,true);
         } else if (stype==SOCK_DGRAM)  {
-    sockFD = this->IfaceMgr->select(CfgMgr->timeout, buf, bufLen, sender);
+    sockFD = this->IfaceMgr->select(CfgMgr->timeout, buf, bufLen,myAddr, sender);
         }
     }
     
@@ -525,10 +519,7 @@ bool ReqTransMgr::ParseOpts(int msgType, int recurseLevel, char * buf, int bufLe
     string linePrefix = o.str();
 
     int pos = 0;
-    SPtr<TOpt> ptr;
     bool print = true;
-    unsigned short tmpl=0;
-    int pos2=0;
    
     while (pos<bufLen) {
 	if (pos+4>bufLen) {

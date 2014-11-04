@@ -14,6 +14,7 @@
 typedef struct {
     // global parameters
     char * iface;
+    char * queryName;
     int timeout;
     
     char * dstaddr;

@@ -40,6 +40,7 @@ private:
     SPtr<TIfaceIface> Iface;
     ReqCfgMgr * CfgMgr;
     SPtr<TIfaceSocket> Socket;
+    SPtr<TIPv6Addr> myAddr;
 };
 
 #endif
