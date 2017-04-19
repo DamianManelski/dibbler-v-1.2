@@ -8,6 +8,7 @@
  */
 
 #include "ClntOptFQDN.h"
+#include "OptDUID.h"
 #include "Logger.h"
 
 using namespace std;
@@ -35,8 +36,13 @@ bool TClntOptFQDN::doDuties() {
     }
 	
     string reason = "trying to set FQDN.";
+    if (!Parent) {
+        Log(Error) << "Unable to set FQDN: option parent not set." << LogEnd;
+        return false;
+    }
+
     int ifindex = this->Parent->getIface();
-    SPtr<TIPv6Addr> addr = this->Parent->getAddr();
+    SPtr<TIPv6Addr> addr = this->Parent->getRemoteAddr();
     
     SPtr<TClntIfaceIface> iface = (Ptr*)ClntIfaceMgr().getIfaceByID(ifindex);
     
@@ -45,14 +51,16 @@ bool TClntOptFQDN::doDuties() {
 		   << " while " << reason << LogEnd;
 	return false;
     }
-    
-    if (!this->DUID) {
+
+    SPtr<TOptDUID> duid = (Ptr*)Parent->getOption(OPTION_SERVERID);
+
+    if (!duid) {
 	Log(Error) << "Unable to find proper DUID while " << reason << LogEnd;
 	return false;
     }
     
     // this runs only when client is gonna update DNS server 
-    return iface->setFQDN(this->DUID, addr,getFQDN()); 
+    return iface->setFQDN(duid->getDUID(), addr,getFQDN());
 }
 
 void TClntOptFQDN::setSrvDuid(SPtr<TDUID> duid) {

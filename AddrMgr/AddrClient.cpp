@@ -11,8 +11,12 @@
 #include <iostream>
 #include <string>
 #include <limits.h>
+#include <stdlib.h>
 #include "AddrClient.h"
 #include "Logger.h"
+#include "hex.h"
+//#include "OptDUID.h"
+#include "OptVendorData.h"
 
 using namespace std;
 
@@ -25,15 +29,32 @@ using namespace std;
  * @param duid Client DUID
  *
  */
-TAddrClient::TAddrClient(SPtr<TDUID> duid) {
-    this->DUID=duid;
-    this->SPI = 0;
-    this->ReplayDetectionRcvd = 0;
-    this->ReplayDetectionSent = 1;
+TAddrClient::TAddrClient(SPtr<TDUID> duid)
+    :DUID_(duid), SPI_(0), ReplayDetectionRcvd_(0) {
 }
 
 SPtr<TDUID> TAddrClient::getDUID() {
-    return this->DUID;
+    return DUID_;
+}
+
+SPtr<TOptVendorData> TAddrClient::getRemoteId()
+{
+	return RemoteId;
+}
+
+void TAddrClient::setRemoteId(SPtr<TOptVendorData> remoteId) 
+{
+	RemoteId = remoteId;
+}
+
+SPtr<TDUID> TAddrClient::getRelayId()
+{
+	return RelayId;
+}
+
+void TAddrClient::setRelayId(SPtr<TDUID> relayId)
+{
+	RelayId = relayId;
 }
 
 // --- IA ------------------------------------------------------------
@@ -77,7 +98,7 @@ void TAddrClient::addIA(SPtr<TAddrIA> ia) {
     if (getIA(ia->getIAID()))
     {
         Log(Debug) << "Unable to add IA (iaid=" << ia->getIAID() << "), such IA already exists." << LogEnd;
-	      return;
+              return;
     }
     IAsLst.append(ia);
 }
@@ -197,22 +218,22 @@ bool TAddrClient::delTA(unsigned long iaid) {
 
 unsigned long TAddrClient::getT1Timeout() {
     SPtr<TAddrIA> ptr;
-    unsigned long ts = ULONG_MAX;
+    unsigned long ts = UINT_MAX;
 
     IAsLst.first();
     while ( ptr = IAsLst.get() ) {
         if (ptr->getState()==STATE_CONFIGURED) {
-	    if (ts > ptr->getT1Timeout())
-		ts = ptr->getT1Timeout();
-	}else if (ptr->getState()==STATE_NOTCONFIGURED){
-	    ts = 0;
-	}
+            if (ts > ptr->getT1Timeout())
+                ts = ptr->getT1Timeout();
+        }else if (ptr->getState()==STATE_NOTCONFIGURED){
+            ts = 0;
+        }
     }
 
     PDLst.first();
     while ( ptr = PDLst.get() ) {
-	if (ptr->getState()!=STATE_CONFIGURED)
-	    continue;
+        if (ptr->getState()!=STATE_CONFIGURED)
+            continue;
         if (ts > ptr->getT1Timeout())
             ts = ptr->getT1Timeout();
     }
@@ -221,7 +242,7 @@ unsigned long TAddrClient::getT1Timeout() {
 
 unsigned long TAddrClient::getT2Timeout() {
     SPtr<TAddrIA> ptr;
-    unsigned long ts = ULONG_MAX;
+    unsigned long ts = UINT_MAX;
     IAsLst.first();
 
     while ( ptr = IAsLst.get() ) {
@@ -233,8 +254,8 @@ unsigned long TAddrClient::getT2Timeout() {
 
     PDLst.first();
     while ( ptr = PDLst.get() ) {
-	if (ptr->getState()!=STATE_CONFIGURED)
-	    continue;
+        if (ptr->getState()!=STATE_CONFIGURED)
+            continue;
         if (ts > ptr->getT2Timeout())
             ts = ptr->getT2Timeout();
     }
@@ -244,7 +265,7 @@ unsigned long TAddrClient::getT2Timeout() {
 
 unsigned long TAddrClient::getPrefTimeout() {
     SPtr<TAddrIA> ptr;
-    unsigned long ts = ULONG_MAX;
+    unsigned long ts = UINT_MAX;
 
     IAsLst.first();
     while ( ptr = IAsLst.get() ) {
@@ -256,8 +277,8 @@ unsigned long TAddrClient::getPrefTimeout() {
 
     PDLst.first();
     while ( ptr = PDLst.get() ) {
-	if (ptr->getState()!=STATE_CONFIGURED)
-	    continue;
+        if (ptr->getState()!=STATE_CONFIGURED)
+            continue;
         if (ts > ptr->getPrefTimeout())
             ts = ptr->getPrefTimeout();
     }
@@ -267,10 +288,16 @@ unsigned long TAddrClient::getPrefTimeout() {
 
 unsigned long TAddrClient::getValidTimeout() {
     SPtr<TAddrIA> ptr;
-    unsigned long ts = ULONG_MAX;
+    unsigned long ts = UINT_MAX;
 
     IAsLst.first();
     while ( ptr = IAsLst.get() ) {
+        if (ts > ptr->getValidTimeout())
+            ts = ptr->getValidTimeout();
+    }
+
+    TALst.first();
+    while ( ptr = TALst.get() ) {
         if (ts > ptr->getValidTimeout())
             ts = ptr->getValidTimeout();
     }
@@ -307,7 +334,7 @@ unsigned long TAddrClient::getLastTimestamp() {
         if (ts > ptr->getTimestamp())
             ts = ptr->getTimestamp();
     }
-    
+
     return ts;
 }
 
@@ -316,36 +343,58 @@ unsigned long TAddrClient::getLastTimestamp() {
 // --------------------------------------------------------------------
 
 uint32_t TAddrClient::getSPI() {
-    return this->SPI;
+    return SPI_;
 }
 
 void TAddrClient::setSPI(uint32_t val) {
-    SPI = val;
+    SPI_ = val;
 }
 
 uint64_t TAddrClient::getReplayDetectionRcvd() {
-    return this->ReplayDetectionRcvd;
+    return ReplayDetectionRcvd_;
 }
 
 void TAddrClient::setReplayDetectionRcvd(uint64_t val) {
-    ReplayDetectionRcvd = val;
+    ReplayDetectionRcvd_ = val;
 }
 
-uint64_t TAddrClient::getNextReplayDetectionSent() {
-    return ++ReplayDetectionSent;
+void TAddrClient::generateReconfKey() {
+    ReconfKey_.resize(16);
+
+    fill_random(&ReconfKey_[0], 16);
+}
+
+SPtr<TIPv6Addr> TAddrClient::getRelayLinkAddr()
+{
+	return RelayLinkAddr;
+}
+
+void TAddrClient::setRelayLinkAddr(SPtr<TIPv6Addr> linkAddr)
+{
+	RelayLinkAddr = linkAddr;
 }
 
 // --------------------------------------------------------------------
 // --- operators ------------------------------------------------------
 // --------------------------------------------------------------------
 
-std::ostream & operator<<(std::ostream & strum, TAddrClient &x) 
+std::ostream & operator<<(std::ostream & strum, TAddrClient &x)
 {
-    if (x.DUID->getLen()==1)
-	strum << "  <!-- 1-byte length DUID. DECLINED-ADDRESSES -->" << endl;
     strum << "  <AddrClient>" << endl;
-    if (x.DUID->getLen())
-	strum << "    " << *x.DUID;
+    if (x.DUID_->getLen())
+        strum << "    " << *x.DUID_;
+    if (x.DUID_->getLen()==1)
+        strum << "  <!-- 1-byte length DUID. DECLINED-ADDRESSES -->" << endl;
+
+    // reconfigure-key
+	if (!x.ReconfKey_.empty()) {
+		strum << "    <ReconfigureKey length=\"" << x.ReconfKey_.size() << "\">"
+	          << hexToText(&x.ReconfKey_[0], x.ReconfKey_.size(), false)
+			  << "</ReconfigureKey>" << endl;
+	}
+	else {
+		strum << "    <ReconfigureKey />" << endl;
+	}
 
     strum << "    <!-- " << x.IAsLst.count() << " IA(s) -->" << endl;
     SPtr<TAddrIA> ptr;
@@ -365,9 +414,6 @@ std::ostream & operator<<(std::ostream & strum, TAddrClient &x)
     while (ptr = x.PDLst.get() ) {
         strum << *ptr;
     }
-
     strum << "  </AddrClient>" << endl;
-    if (x.DUID->getLen()==1)
-	strum << "  <!-- 1-byte length DUID. DECLINED-ADDRESSES -->" << endl;
     return strum;
 }

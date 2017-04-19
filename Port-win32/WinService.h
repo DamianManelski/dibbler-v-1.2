@@ -3,9 +3,8 @@
  *                                                                           
  * authors: Tomasz Mrugalski <thomson@klub.com.pl>                           
  *          Marek Senderski <msend@o2.pl>                                    
+ * changes: Hernan Martinez <hernan(dot)c(dot)martinez(at)gmail(dot)com>
  *
- * $Id: WinService.h,v 1.9 2005-07-26 00:03:03 thomson Exp $
- *                                                                           
  * Released under GNU GPL v2 licence                                
  *
  */
@@ -19,15 +18,15 @@
 #define SERVICE_CONTROL_USER 128
 
 typedef enum {
-	STATUS,
-	START,
-	STOP,
-	INSTALL,
-	UNINSTALL,
+    STATUS,
+    START,
+    STOP,
+    INSTALL,
+    UNINSTALL,
     SERVICE,
-	RUN,
-	HELP,
-	INVALID
+    RUN,
+    HELP,
+    INVALID
 } EServiceState;
 
 class TWinService
@@ -55,6 +54,7 @@ class TWinService
   int getStatus();
   bool isRunning(const char * name);
   bool isRunning();
+  bool isRunAsAdmin();
   
   virtual void Run();
   virtual bool OnInit();
@@ -67,6 +67,8 @@ class TWinService
   
   ~TWinService(void);
 
+  static const char ADMIN_REQUIRED_STR[];
+
  protected:
   SERVICE_STATUS Status;
   SERVICE_STATUS_HANDLE	hServiceStatus;
@@ -76,17 +78,10 @@ class TWinService
   int MajorVersion;
   int MinorVersion;
   DWORD ServiceType;
-  char* Dependencies;
+  char Dependencies[64];
   char* DisplayName;
   char* descr;
   static TWinService* ServicePtr;
   HANDLE EventSource;
 };
 #endif
-
-/*
- * $Log: not supported by cvs2svn $
- * Revision 1.1  2005/07/23 14:33:22  thomson
- * Port for win2k/NT added.
- *
- */

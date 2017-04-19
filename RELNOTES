@@ -1,20 +1,38 @@
 
-  Dibbler 0.8.2 release notes [2011-02-29]
- ---------------------------------------------------------
+  Dibbler 1.0.0 Release Candidate 2 [2014-07-12]
+ ------------------------------------------------
 
- This is the 0.8.2 release of the Dibbler software.
+ This is a second Release Candidate for 1.0.0 release of the Dibbler software.
 
- This is a maintenance release and includes number of bug fixes, without any
- significant new functionalities. If you are happy with 0.8.1 operation, you do
- not need to upgrade.
+ Due to other obligations, 1.0.0RC1 was available for a very long time
+ and I never had a chance to release 1.0.0 final. In the mean time, quite
+ a few of fixes and small features were added (Changelog mentions 35 items,
+ but I'm sure some of them were not listed). So formally this is a second
+ RC, but it contains unexpectedly large changes for an RC. Keep that in
+ mind. This time I expect the delay between RC and final to be much shorter
+ (couple weeks).
+
+ Couple changes worth mentioning:
+ - dibbler client now configures received prefix with /128, not /64. This
+   will likely raise some eyebrows, but that how DHCPv6 is supposed to work.
+   Please see https://klub.com.pl/bugzilla3/show_bug.cgi?id=222 for extra
+   details.
+ - There are reports that Reconfigure messages are sent to the wrong address
+   if the client connected via relays. See bug #303.
+ - There are reports that Dibbler has problems on Ubuntu 14.04. That was
+   traced to a Linux kernel issue and is fixed in 3.15.2. See bug #302.
+ - Windows port improved, now using Visual Studio 2013 Express.
+ - Issue tracker on github has been disabled. It was awkward to use both
+   bugzilla and github.
 
  See CHANGELOG for a complete list of changes.
 
- If you find bugs, please report them on http://klub.com.pl/bugzilla/ or
- send bug report to the directly to the author. Appropriate links are
- on project website: http://klub.com.pl/dhcpv6/. If you need help or
- want to share your thoughts, take a look at one of the
- Dibbler-related mailing lists: dibbler or dibbler-devel.
+ If you find bugs, please report them on http://klub.com.pl/bugzilla/.
+ Appropriate links are on project website: http://klub.com.pl/dhcpv6/.
+ If you need help or want to share your thoughts, take a look at one
+ of two mailing lists: dibbler or dibbler-devel. Please do not contact
+ author directly, unless you want to report security issues or discuss
+ confidential matters.
 
-                               Tomasz Mrugalski,
-                               author
+			       Tomek Mrugalski,
+			       author

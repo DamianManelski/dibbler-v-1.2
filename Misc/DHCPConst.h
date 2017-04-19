@@ -9,8 +9,6 @@
  *
  */
 
-#include "DHCPDefaults.h"
-
 #ifndef DHCPCONST_H
 #define DHCPCONST_H
 
@@ -34,7 +32,7 @@
 #define INFORMATION_REQUEST_MSG 11
 #define RELAY_FORW_MSG 12
 #define RELAY_REPL_MSG 13
-#define LEASEQUERY_MSG 14
+#define LEASEQUERY_MSG       14
 #define LEASEQUERY_REPLY_MSG 15
 #define LEASEQUERY_DONE_MSG 16
 #define LEASEQUERY_DATA_MSG 17
@@ -155,19 +153,15 @@
 #define OPTION_LQ_RELAY_DATA    47
 #define OPTION_LQ_CLIENT_LINK   48
 
+#define OPTION_RELAY_ID         53
+
 // draft-ietf-softwire-ds-lite-tunnel-option-10, approved by IESG
 #define OPTION_AFTR_NAME        64
 
-// RFC5460: Bulk Leasequer
-#define OPTION_RELAY_ID		53
+// RFC6939
+#define OPTION_CLIENT_LINKLAYER_ADDR 79
 
-// The following option numbers are not yet standardized and
-// won't interoperate with other implementations
-// option formats taken from:
-// draft-ram-dhc-dhcpv6-aakey-01.txt
-#define OPTION_AAAAUTH              240
-#define OPTION_KEYGEN               241
-
+// draft-ietf-mif-dhcpv6-route-option-04
 #define OPTION_NEXT_HOP         242
 #define OPTION_RTPREFIX         243
 
@@ -210,12 +204,15 @@ typedef enum {
 #define STATUSCODE_QUERYTERMINATED 11
 
 // INFINITY + 1 is 0. That's cool!
-#define DHCPV6_INFINITY (uint32_t) 0xffffffff
+#define DHCPV6_INFINITY 0xffffffffu
 
-enum ETentative {
-    TENTATIVE_UNKNOWN = -1,
-    TENTATIVE_NO      = 0,
-    TENTATIVE_YES     = 1
+/// used for 2 purposes:
+/// is address tentative?
+/// is address valid on link?
+enum EAddrStatus {
+    ADDRSTATUS_UNKNOWN = -1,
+    ADDRSTATUS_NO      = 0,
+    ADDRSTATUS_YES     = 1
 };
 
 enum EState {
@@ -233,8 +230,15 @@ enum EUnknownFQDNMode {
     UNKNOWN_FQDN_REJECT = 0,      // reject unknown FQDNs (do not assign a name from pool)
     UNKKOWN_FQDN_ACCEPT_POOL = 1, // assign other name available in pool
     UNKNOWN_FQDN_ACCEPT = 2,      // accept unknown FQDNs
-    UKNNOWN_FQDN_APPEND = 3,      // accept, but append defined domain suffix
-    UKNNOWN_FQDN_PROCEDURAL = 4   // generate name procedurally, append defined domain suffix
+    UNKNOWN_FQDN_APPEND = 3,      // accept, but append defined domain suffix
+    UNKNOWN_FQDN_PROCEDURAL = 4   // generate name procedurally, append defined domain suffix
+};
+
+// defines Identity assotiation type
+enum TIAType {
+    IATYPE_IA, // IA_NA - non-temporary addresses
+    IATYPE_TA, // IA_TA - temporary addresses
+    IATYPE_PD  // IA_PD - prefix delegation
 };
 
 // FQDN option flags
@@ -247,48 +251,55 @@ enum EUnknownFQDNMode {
 #define ADDRPARAMS_MASK_ANYCAST   0x02
 #define ADDRPARAMS_MASK_MULTICAST 0x04
 
-
 int allowOptInOpt(int msgType, int optOut, int optIn);
 int allowOptInOptInBulk(int msgType, int optOut, int optIn, int pos);
 int allowOptInMsg(int msgType, int optType);
 
-#ifdef WIN32
-//#define uint8_t  unsigned char
-//#define uint16_t unsigned short int
-//#define uint32_t unsigned int
-
-#ifndef uint8_t
-#define uint8_t  unsigned char
-#endif
-
-#ifndef uint16_t
-#define uint16_t unsigned short int
-#endif
-
-#ifndef uint32_t
-#define uint32_t unsigned int
-#endif
-
-#ifndef uint64_t
-#define uint64_t unsigned long long int
-#endif
-
-#else
-#include <stdint.h>
-#endif
-
-enum DigestTypes {
-	DIGEST_NONE = 0,
-	DIGEST_PLAIN = 1,
-	DIGEST_HMAC_MD5 = 2,
-	DIGEST_HMAC_SHA1 = 3,
-	DIGEST_HMAC_SHA224 = 4,
-	DIGEST_HMAC_SHA256 = 5,
-	DIGEST_HMAC_SHA384 = 6,
-	DIGEST_HMAC_SHA512 = 7,
-	//this must be last, increase it if necessary
-	DIGEST_INVALID = 8
+// Supported authorization protocols
+enum AuthProtocols {
+    AUTH_PROTO_NONE = 0,    // disabled
+    AUTH_PROTO_DELAYED = 2, // RFC 3315
+    AUTH_PROTO_RECONFIGURE_KEY = 3, // RFC 3315, section 21.5.1
+    AUTH_PROTO_DIBBLER = 4 // Mechanism proposed by Kowalczuk
 };
+
+enum AuthReplay {
+    AUTH_REPLAY_NONE = 0,
+    AUTH_REPLAY_MONOTONIC = 1
+};
+
+// AUTH_ALGORITHM values for protocol type None (0)
+// 0
+
+// AUTH_ALGORITHM values for delayed auth (2)
+
+// AUTH_ALGORITHM values for reconfigure key (3)
+// This is protocol specific value and is useful only when AuthProtocols = 3
+enum AuthAlgorithm_ReconfigureKey {
+    AUTH_ALGORITHM_NONE = 0,
+    AUTH_ALGORITHM_RECONFIGURE_KEY = 1
+};
+
+// AUTH_ALGORITHM values for protocol type Dibbler (4)
+/// @todo: rename to AuthAlgorithm_DibblerDigestTypes
+// This is protocol specific value and is useful only when AuthProtocols = 4
+enum DigestTypes {
+    DIGEST_NONE = 0,
+    DIGEST_PLAIN = 1,
+    DIGEST_HMAC_MD5 = 2,
+    DIGEST_HMAC_SHA1 = 3,
+    DIGEST_HMAC_SHA224 = 4,
+    DIGEST_HMAC_SHA256 = 5,
+    DIGEST_HMAC_SHA384 = 6,
+    DIGEST_HMAC_SHA512 = 7,
+    //this must be last, increase it if necessary
+    DIGEST_INVALID = 8
+};
+
+#ifdef __cplusplus
+#include <vector>
+typedef std::vector<DigestTypes> DigestTypesLst;
+#endif
 
 unsigned getDigestSize(enum DigestTypes type);
 char *getDigestName(enum DigestTypes type);
@@ -297,5 +308,15 @@ char *getDigestName(enum DigestTypes type);
 // key = HMAC-SHA1 (AAA-key, {Key Generation Nonce || client identifier})
 // so it's size is always size of HMAC-SHA1 result which is 160bits = 20bytes
 #define AUTHKEYLEN 20
+
+// Values used in reconfigure-key algorithm (see RFC3315, section 21.5.1)
+const static unsigned int RECONFIGURE_KEY_AUTHINFO_SIZE = 17;
+const static unsigned int RECONFIGURE_KEY_SIZE = 16;    // HMAC-MD5 key
+const static unsigned int RECONFIGURE_DIGEST_SIZE = 16; // HMAC-MD5 digest
+
+// Values used in delayed-auth algorithm (see RFC3315, section 21.4)
+const static unsigned int DELAYED_AUTH_KEY_SIZE = 16;   // HMAC-MD5 key
+const static unsigned int DELAYED_AUTH_DIGEST_SIZE = 16; // HMAC-MD5 digest
+const static unsigned int DELAYED_AUTH_KEY_ID_SIZE = 4; // uint32
 
 #endif

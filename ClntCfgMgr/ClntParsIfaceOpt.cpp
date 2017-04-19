@@ -9,59 +9,33 @@
  *
  */
 
-#include "ClntParsIfaceOpt.h"
 #include <iostream>
 #include <iomanip>
+#include "ClntParsIfaceOpt.h"
+#include "DHCPDefaults.h"
 #include "Logger.h"
-#include "ClntOptVendorSpec.h"
 
 using namespace std;
 
-TClntParsIfaceOpt::TClntParsIfaceOpt() : TClntParsIAOpt()
+TClntParsIfaceOpt::TClntParsIfaceOpt()
+    : TClntParsIAOpt(), Stateless_(false), Unicast(CLIENT_DEFAULT_UNICAST),
+      RapidCommit(CLIENT_DEFAULT_RAPID_COMMIT), Timezone(""), FQDN(""),
+      NISDomain(""), Lifetime(false), ReqDNSServer(false), ReqDomain(false),
+      ReqNTPServer(false), ReqTimezone(false), ReqSIPServer(false),
+      ReqSIPDomain(false), ReqFQDN(false), ReqNISServer(false),
+      ReqNISPServer(false), ReqNISDomain(false), ReqNISPDomain(false),
+      ReqLifetime(false), ReqPrefixDelegation(false), ReqVendorSpec(false)
 {
-    DNSServerLst.clear();
-    DomainLst.clear();
-    NTPServerLst.clear();
-    Timezone="";
-    SIPServerLst.clear();
-    SIPDomainLst.clear();
-    FQDN    ="";
-    NISServerLst.clear();
-    NISDomain = "";
-    NISPServerLst.clear();
-    NISPDomain = "";
-    Lifetime = false;
-    VendorSpec.clear();
-
-    NoIAs   = false;
-
-    this->Unicast     = CLIENT_DEFAULT_UNICAST;
-    this->RapidCommit = CLIENT_DEFAULT_RAPID_COMMIT;
-
-    ReqDNSServer  = false;
-    ReqDomain     = false;
-    ReqNTPServer  = false;
-    ReqTimezone   = false;
-    ReqSIPServer  = false;
-    ReqSIPDomain  = false;
-    ReqFQDN       = false;
-    ReqNISServer  = false;
-    ReqNISPServer = false;
-    ReqNISDomain  = false;
-    ReqNISPDomain = false;
-    ReqLifetime   = false;
-    ReqPrefixDelegation = false;
-    ReqVendorSpec = false;
 }
 
-bool TClntParsIfaceOpt::getIsIAs()
+bool TClntParsIfaceOpt::getStateful()
 {
-    return !NoIAs;
+    return !Stateless_;
 }
 
-void TClntParsIfaceOpt::setIsIAs(bool state)
+void TClntParsIfaceOpt::setStateful(bool state)
 {
-    NoIAs=!state;
+    Stateless_ = !state;
 }
 
 void TClntParsIfaceOpt::setUnicast(bool unicast)

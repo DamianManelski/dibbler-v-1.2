@@ -23,7 +23,6 @@ class TOpt;
 
 class TIfaceMgr {
   public:
-
     bool isTcpSet;
     friend std::ostream & operator <<(std::ostream & strum, TIfaceMgr &x);
 
@@ -34,11 +33,11 @@ class TIfaceMgr {
     SPtr<TIfaceIface> getIface();
     SPtr<TIfaceIface> getIfaceByName(const std::string& name);
     SPtr<TIfaceIface> getIfaceByID(int id);
-    SPtr<TIfaceIface> getIfaceBySocket(int fd);
+    virtual SPtr<TIfaceIface> getIfaceBySocket(int fd);
     int countIface();
 
     // ---other---
-    int select(unsigned long time, char *buf, int &bufsize, SPtr<TIPv6Addr> peer, bool tcpClient=false);
+	int select(unsigned long time, char *buf, int &bufsize, SPtr<TIPv6Addr> peer, SPtr<TIPv6Addr> myaddr, bool tcpClient=false);
     std::string printMac(char * mac, int macLen);
     void dump();
     bool isDone();
@@ -49,6 +48,9 @@ class TIfaceMgr {
                                SPtr<TMsg> answer, TNotifyScriptParams& params);
     virtual void notifyScript(const std::string& scriptName, std::string action,
                               TNotifyScriptParams& params);
+
+    virtual void closeSockets();
+	virtual void closeTcpSocket();
 
     virtual ~TIfaceMgr();
 

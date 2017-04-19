@@ -35,7 +35,7 @@ using namespace std;
  * @param confirm
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgConfirm> confirm)
-    :TSrvMsg(confirm->getIface(),confirm->getAddr(), REPLY_MSG,
+    :TSrvMsg(confirm->getIface(),confirm->getRemoteAddr(), REPLY_MSG,
              confirm->getTransID())
 {
     getORO( (Ptr*)confirm );
@@ -43,35 +43,38 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgConfirm> confirm)
     copyRelayInfo((Ptr*)confirm);
     copyAAASPI((Ptr*)confirm);
     copyRemoteID((Ptr*)confirm);
+	copyRelayId((Ptr*)confirm);
+	copyRelayLinkAddress((Ptr*)confirm);
 
-    handleConfirmOptions( confirm->getOptLst() );
+    if (!handleConfirmOptions( confirm->getOptLst() )) {
+        IsDone = true;
+        return;
+    }
 
     appendMandatoryOptions(ORO);
-    // appendRequestedOptions(ClientDUID, confirm->getAddr(), confirm->getIface(), ORO);
-    // appendStatusCode();
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
     this->MRT_ = 31;
     IsDone = false;
     this->send();
 }
 
+
 bool TSrvMsgReply::handleConfirmOptions(TOptList & options) {
-    SPtr<TSrvCfgIface> ptrIface = SrvCfgMgr().getIfaceByID( Iface );
-    if (!ptrIface) {
+
+    SPtr<TSrvCfgIface> cfgIface = SrvCfgMgr().getIfaceByID(Iface);
+    if (!cfgIface) {
         Log(Crit) << "Msg received through not configured interface. "
             "Somebody call an exorcist!" << LogEnd;
-        this->IsDone = true;
+        IsDone = true;
         return false;
     }
 
-    bool OnLink = true;
+    EAddrStatus onLink = ADDRSTATUS_YES;
     int checkCnt = 0;
-    List(TSrvOptIA_NA) validIAs;
 
     TOptList::iterator opt = options.begin();
-    while ( (opt!=options.end()) && OnLink ) {
+    while ( (opt!=options.end()) && (onLink==ADDRSTATUS_YES) ) {
 
         switch ( (*opt)->getOptType()) {
         case OPTION_IA_NA: {
@@ -79,89 +82,91 @@ bool TSrvMsgReply::handleConfirmOptions(TOptList & options) {
             SPtr<TSrvOptIA_NA> ia = (Ptr*) (*opt);
 
             // now we check whether this IA exists in Server Address database or not.
-
-            SPtr<TOpt> subOpt;
-            unsigned long addrCnt = 0;
+            SPtr<TOpt> opt;
             ia->firstOption();
-            while ( (subOpt = ia->getOption()) && (OnLink) ) {
-                if (subOpt->getOptType() != OPTION_IAADDR){
+            while ((opt = ia->getOption()) && (onLink == ADDRSTATUS_YES) ) {
+                if (opt->getOptType() != OPTION_IAADDR){
                     continue;
                 }
 
-                SPtr<TSrvOptIAAddress> optAddr = (Ptr*) subOpt;
-                Log(Debug) << "CONFIRM message: checking if " << optAddr->getAddr()->getPlain() << " is supported:";
-                if (!SrvCfgMgr().isIAAddrSupported(this->Iface, optAddr->getAddr())) {
-                    Log(Cont) << "no." << LogEnd;
-                    OnLink = false;
-                } else {
-                    Log(Cont) << "yes." << LogEnd;
-                    addrCnt++;
-                }
+                SPtr<TSrvOptIAAddress> optAddr = (Ptr*) opt;
+                onLink = cfgIface->confirmAddress(IATYPE_IA, optAddr->getAddr());
                 checkCnt++;
-            }
-            if (addrCnt) {
-                SPtr<TSrvOptIA_NA> tempIA = new TSrvOptIA_NA(ia, PeerAddr,
-                                                             ClientDUID, Iface, addrCnt,CONFIRM_MSG, this);
-                validIAs.append(tempIA);
             }
             break;
         }
         case OPTION_IA_TA: {
             SPtr<TSrvOptTA> ta = (Ptr*) (*opt);
-            // now we check whether this IA exists in Server Address database or not.
 
-            SPtr<TOpt> subOpt;
+            SPtr<TOpt> opt;
             ta->firstOption();
-            while (subOpt = ta->getOption() && (OnLink)) {
-                if (subOpt->getOptType() != OPTION_IAADDR)
+            while (opt = ta->getOption() && (onLink == ADDRSTATUS_YES)) {
+                if (opt->getOptType() != OPTION_IAADDR)
                     continue;
-                SPtr<TSrvOptIAAddress> optAddr = (Ptr*) subOpt;
-                if (!SrvCfgMgr().isTAAddrSupported(this->Iface, optAddr->getAddr())) {
-                    OnLink = false;
-                }
+
+                SPtr<TSrvOptIAAddress> optAddr = (Ptr*) opt;
+                onLink = cfgIface->confirmAddress(IATYPE_TA, optAddr->getAddr());
+                checkCnt++;
+            }
+            break;
+        }
+        case OPTION_IA_PD: {
+            SPtr<TSrvOptIA_PD> ta = (Ptr*) (*opt);
+
+            SPtr<TOpt> opt;
+            ta->firstOption();
+            while (opt = ta->getOption() && (onLink == ADDRSTATUS_YES)) {
+                if (opt->getOptType() != OPTION_IAPREFIX)
+                    continue;
+
+                SPtr<TSrvOptIAPrefix> optPrefix = (Ptr*) opt;
+                onLink = cfgIface->confirmAddress(IATYPE_PD, optPrefix->getPrefix());
                 checkCnt++;
             }
             break;
         }
         default:
-            handleDefaultOption( *opt);
+            handleDefaultOption(*opt);
             break;
         }
         ++opt;
     }
+
     if (!checkCnt) {
-        // no check
-        SPtr <TOptStatusCode> ptrCode =
-            new TOptStatusCode(STATUSCODE_NOTONLINK,
-                               "No addresses checked. Did you send any?",
-                               this);
-        Options.push_back( (Ptr*) ptrCode );
-    } else
-    if (!OnLink) {
-        // not-on-link
-        SPtr <TOptStatusCode> ptrCode =
-            new TOptStatusCode(STATUSCODE_NOTONLINK,
-                               "Sorry, those addresses are not valid for this link.",
-                               this);
-        Options.push_back( (Ptr*) ptrCode );
-    } else {
-        // success
+        Log(Info) << "No addresses or prefixes in CONFIRM. Not sending reply." << LogEnd;
+        return false;
+    }
+
+    switch (onLink) {
+    case ADDRSTATUS_YES: {
         SPtr <TOptStatusCode> ptrCode =
             new TOptStatusCode(STATUSCODE_SUCCESS,
                                "Your addresses are correct for this link! Yay!",
                                this);
         Options.push_back( (Ptr*) ptrCode);
-
-        if(validIAs.count()){
-            SPtr<TSrvOptIA_NA> ia;
-            validIAs.first();
-            while(ia=validIAs.get() ){
-                Options.push_back((Ptr*)ia );
-            }
-        }
+        return true;
     }
 
-    return true;
+    case ADDRSTATUS_NO: {
+        SPtr <TOptStatusCode> ptrCode =
+            new TOptStatusCode(STATUSCODE_NOTONLINK,
+                               "Sorry, those addresses are not valid for this link.",
+                               this);
+        Options.push_back( (Ptr*) ptrCode );
+        return true;
+    }
+
+    default:
+    case ADDRSTATUS_UNKNOWN: {
+        Log(Info) << "Address/prefix being confirmed is outside of defined class,"
+                  << " but there is no subnet defined, so can't answer authoratively."
+                  << " Will not send answer." << LogEnd;
+        return false;
+    }
+    }
+
+    // should never get here
+    return false;
 }
 
 
@@ -171,19 +176,22 @@ bool TSrvMsgReply::handleConfirmOptions(TOptList & options) {
  * @param decline
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
-    :TSrvMsg(decline->getIface(),decline->getAddr(), REPLY_MSG, decline->getTransID())
+    :TSrvMsg(decline->getIface(), decline->getRemoteAddr(), REPLY_MSG,
+             decline->getTransID())
 {
     getORO( (Ptr*)decline );
     copyClientID( (Ptr*)decline );
     copyRelayInfo( (Ptr*)decline );
     copyAAASPI( (Ptr*)decline );
     copyRemoteID( (Ptr*)decline );
-
+	copyRelayId((Ptr*)decline);
+	copyRelayLinkAddress((Ptr*)decline);
     SPtr<TOpt> ptrOpt;
 
     SPtr<TAddrClient> ptrClient = SrvAddrMgr().getClient(ClientDUID);
     if (!ptrClient) {
-        Log(Warning) << "Received DECLINE from unknown client, DUID=" << *ClientDUID << ". Ignored." << LogEnd;
+        Log(Warning) << "Received DECLINE from unknown client, DUID="
+                     << *ClientDUID << ". Ignored." << LogEnd;
         IsDone = true;
         return;
     }
@@ -258,7 +266,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
             break;
         };
         case OPTION_IA_TA:
-            Log(Info) << "TA address declined. Oh well. Since it's temporary, let's ignore it entirely." << LogEnd;
+            Log(Info) << "TA address declined. It's temporary, so let's ignore it entirely."
+                      << LogEnd;
             break;
         default:
             handleDefaultOption(ptrOpt);
@@ -270,7 +279,6 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
 
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
     IsDone = false;
     MRT_ = 31;
     this->send();
@@ -282,14 +290,15 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgDecline> decline)
  * @param rebind
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
-    :TSrvMsg(rebind->getIface(),rebind->getAddr(), REPLY_MSG, rebind->getTransID())
+    :TSrvMsg(rebind->getIface(),rebind->getRemoteAddr(), REPLY_MSG, rebind->getTransID())
 {
     getORO( (Ptr*)rebind );
     copyClientID( (Ptr*)rebind );
     copyRelayInfo( (Ptr*)rebind );
     copyAAASPI( (Ptr*)rebind );
     copyRemoteID( (Ptr*)rebind );
-
+	copyRelayId((Ptr*)rebind);
+	copyRelayLinkAddress((Ptr*)rebind);
     unsigned long addrCount=0;
     SPtr<TOpt> ptrOpt;
 
@@ -302,7 +311,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
           {
             SPtr<TSrvOptIA_NA> optIA_NA;
             optIA_NA = new TSrvOptIA_NA((Ptr*)ptrOpt,
-                                        rebind->getAddr(), ClientDUID,
+                                        rebind->getRemoteAddr(), ClientDUID,
                                         rebind->getIface(), addrCount, REBIND_MSG,
                                         this);
             if (optIA_NA->getStatusCode() != STATUSCODE_NOBINDING )
@@ -336,10 +345,9 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
     }
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID, rebind->getAddr(),rebind->getIface(), ORO);
+    appendRequestedOptions(ClientDUID, rebind->getRemoteAddr(),rebind->getIface(), ORO);
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
     IsDone = false;
     MRT_ = 0;
     this->send();
@@ -352,7 +360,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRebind> rebind)
  * @param release
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRelease> release)
-    :TSrvMsg(release->getIface(),release->getAddr(), REPLY_MSG,
+    :TSrvMsg(release->getIface(),release->getRemoteAddr(), REPLY_MSG,
              release->getTransID())
 {
     getORO( (Ptr*) release );
@@ -360,6 +368,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRelease> release)
     copyRelayInfo((Ptr*)release);
     copyAAASPI((Ptr*)release);
     copyRemoteID((Ptr*)release);
+	copyRelayId((Ptr*)release);
+	copyRelayLinkAddress((Ptr*)release);
 
     /// @todo When the server receives a Release message via unicast from a client
     /// to which the server has not sent a unicast option, the server
@@ -523,7 +533,6 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRelease> release)
 
     NotifyScripts = notifyParams;
 
-    pkt = new char[this->getSize()];
     IsDone = false;
     MRT_ = 46;
     this->send();
@@ -531,13 +540,15 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRelease> release)
 
 // used as RENEW reply
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
-    :TSrvMsg(renew->getIface(),renew->getAddr(), REPLY_MSG, renew->getTransID())
+    :TSrvMsg(renew->getIface(),renew->getRemoteAddr(), REPLY_MSG, renew->getTransID())
 {
     getORO( (Ptr*)renew );
     copyClientID( (Ptr*)renew );
     copyRelayInfo((Ptr*)renew);
     copyAAASPI((Ptr*)renew);
     copyRemoteID((Ptr*)renew);
+	copyRelayId((Ptr*)renew);
+	copyRelayLinkAddress((Ptr*)renew);
 
     // uncomment this to test REBIND
     //IsDone = true;
@@ -555,7 +566,7 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
         case OPTION_IA_NA: {
             SPtr<TSrvOptIA_NA> optIA_NA;
             optIA_NA = new TSrvOptIA_NA((Ptr*)ptrOpt,
-                                        renew->getAddr(), ClientDUID,
+                                        renew->getRemoteAddr(), ClientDUID,
                                         renew->getIface(), addrCount, RENEW_MSG, this);
             Options.push_back((Ptr*)optIA_NA);
             break;
@@ -588,10 +599,9 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
     }
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID,renew->getAddr(),renew->getIface(), ORO);
+    appendRequestedOptions(ClientDUID,renew->getRemoteAddr(),renew->getIface(), ORO);
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
     IsDone = false;
     MRT_ = 0;
     this->send();
@@ -603,37 +613,47 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRenew> renew)
  * @param request
  */
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgRequest> request)
-    :TSrvMsg(request->getIface(), request->getAddr(), REPLY_MSG, request->getTransID())
+    :TSrvMsg(request->getIface(), request->getRemoteAddr(), REPLY_MSG, request->getTransID())
 {
     getORO( (Ptr*)request );
     copyClientID( (Ptr*)request );
     copyRelayInfo( (Ptr*)request );
     copyAAASPI( (Ptr*)request );
     copyRemoteID( (Ptr*)request );
+	copyRelayId((Ptr*)request);
+	copyRelayLinkAddress((Ptr*)request);
 
     processOptions((Ptr*)request, false); // be verbose
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID, PeerAddr, Iface, ORO);
+    appendRequestedOptions(ClientDUID, PeerAddr_, Iface, ORO);
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
+#ifndef MOD_DISABLE_AUTH
+    SPtr<TOpt> reconfAccept = request->getOption(OPTION_RECONF_ACCEPT);
+    if (reconfAccept) {
+        appendReconfigureKey();
+    }
+#endif
+
     IsDone = false;
     MRT_ = 330;
-    this->send();
+    send();
 }
 
 /// @brief ctor used for generating REPLY message as SOLICIT response (in rapid-commit mode)
 ///
 /// @param solicit client's message
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgSolicit> solicit)
-    :TSrvMsg(solicit->getIface(), solicit->getAddr(), REPLY_MSG, solicit->getTransID())
+    :TSrvMsg(solicit->getIface(), solicit->getRemoteAddr(), REPLY_MSG, solicit->getTransID())
 {
     getORO( (Ptr*)solicit );
     copyClientID( (Ptr*)solicit );
     copyRelayInfo( (Ptr*)solicit );
     copyAAASPI( (Ptr*)solicit );
     copyRemoteID( (Ptr*)solicit );
+	copyRelayId((Ptr*)solicit);
+	copyRelayLinkAddress((Ptr*)solicit);
 
     processOptions((Ptr*) solicit, false);
 
@@ -641,10 +661,9 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgSolicit> solicit)
     Options.push_back(new TOptEmpty(OPTION_RAPID_COMMIT, this));
 
     appendMandatoryOptions(ORO);
-    appendRequestedOptions(ClientDUID, PeerAddr, Iface, ORO);
+    appendRequestedOptions(ClientDUID, PeerAddr_, Iface, ORO);
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
     IsDone = false;
     SPtr<TIPv6Addr> ptrAddr;
     MRT_ = 330;
@@ -654,13 +673,15 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgSolicit> solicit)
 // INFORMATION-REQUEST answer
 TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
     :TSrvMsg(infRequest->getIface(),
-             infRequest->getAddr(),REPLY_MSG,infRequest->getTransID())
+             infRequest->getRemoteAddr(),REPLY_MSG,infRequest->getTransID())
 {
     getORO( (Ptr*)infRequest );
     copyClientID( (Ptr*)infRequest );
     copyRelayInfo((Ptr*)infRequest);
     copyAAASPI((Ptr*)infRequest);
     copyRemoteID((Ptr*)infRequest);
+	copyRelayId((Ptr*)infRequest);
+	copyRelayLinkAddress((Ptr*)infRequest);
 
     Log(Debug) << "Received INF-REQUEST requesting " << showRequestedOptions(ORO) << "." << LogEnd;
 
@@ -681,8 +702,6 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
             case OPTION_RECONF_MSG  :
             case OPTION_IA_NA       :
             case OPTION_IA_TA       :
-            case OPTION_AAAAUTH     :
-            case OPTION_KEYGEN      :
                 Log(Warning) << "Invalid option " << ptrOpt->getOptType() <<" received." << LogEnd;
                 break;
             default:
@@ -692,7 +711,8 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
     }
 
     appendMandatoryOptions(ORO);
-    if ( !appendRequestedOptions(ClientDUID, infRequest->getAddr(),infRequest->getIface(), ORO) ) {
+    if ( !appendRequestedOptions(ClientDUID, infRequest->getRemoteAddr(),
+                                 infRequest->getIface(), ORO) ) {
         Log(Warning) << "No options to answer in INF-REQUEST, so REPLY will not be send." << LogEnd;
         IsDone=true;
         return;
@@ -700,10 +720,32 @@ TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsgInfRequest> infRequest)
 
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
     IsDone = false;
     MRT_ = 330;
     send();
+}
+
+TSrvMsgReply::TSrvMsgReply(SPtr<TSrvMsg> msg, TOptList& options)
+    :TSrvMsg(msg->getIface(), msg->getRemoteAddr(), REPLY_MSG,
+             msg->getTransID()) {
+
+    // Let's just use specified options as they are
+    Options = options;
+
+    // Append client-id
+    SPtr<TOpt> client_id = msg->getOption(OPTION_CLIENTID);
+    if (client_id) {
+        Options.push_back(client_id);
+    }
+
+    // Append server-id
+    SPtr<TOptDUID> ptrSrvID;
+    ptrSrvID = new TOptDUID(OPTION_SERVERID, SrvCfgMgr().getDUID(), this);
+    Options.push_back((Ptr*)ptrSrvID);
+
+    MRT_ = 330;
+    send();
+    IsDone = true;
 }
 
 void TSrvMsgReply::doDuties() {
@@ -711,10 +753,10 @@ void TSrvMsgReply::doDuties() {
 }
 
 unsigned long TSrvMsgReply::getTimeout() {
-    unsigned long diff = now() - FirstTimeStamp_;
-    if (diff>SERVER_REPLY_CACHE_TIMEOUT)
+    unsigned long diff = (uint32_t)time(NULL) - FirstTimeStamp_;
+    if (diff > SERVER_REPLY_CACHE_TIMEOUT)
         return 0;
-    return SERVER_REPLY_CACHE_TIMEOUT-diff;
+    return SERVER_REPLY_CACHE_TIMEOUT - diff;
 }
 
 bool TSrvMsgReply::check() {

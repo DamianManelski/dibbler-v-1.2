@@ -18,10 +18,18 @@
 #include "DUID.h"
 
 class TMsg;
+class TOpt;
+
+typedef SPtr<TOpt> TOptPtr;
+typedef std::list< TOptPtr > TOptList;
+typedef TContainer< TOptPtr > TOptContainer;
 
 class TOpt
 {
   public:
+
+    /// length of a DHCPv6 option header
+    const static size_t OPTION6_HDR_LEN = 4;
 
     /* this is required to specify, what is the format of expected options.
        This cannot be class field or method, because there is no object
@@ -64,18 +72,18 @@ class TOpt
      *
      * @return true if the option is valid.
      */
-    virtual bool isValid();
+    virtual bool isValid() const;
 
     virtual std::string getPlain();
 
     int getOptType();
 
-    SPtr<TOpt> getOption(int type);
+    TOptPtr getOption(int type);
 
     // suboptions management
     void firstOption();
-    SPtr<TOpt> getOption();
-    void addOption(SPtr<TOpt> opt);
+    TOptPtr getOption();
+    void addOption(TOptPtr opt);
     bool delOption(uint16_t type);
     int countOption();
     void delAllOptions();
@@ -83,8 +91,7 @@ class TOpt
 
     SPtr<TDUID> getDUID();
     void setDUID(SPtr<TDUID> duid);
-
-    static bool parseOptions(TContainer< SPtr<TOpt> >& options,
+    static bool parseOptions(TOptContainer& options,
                              const char* buf,
                              size_t len,
                              TMsg* parent,
@@ -92,18 +99,18 @@ class TOpt
                              std::string place = "option" // "option" or "message"
                              );
 
+    static TOptPtr getOption(const TOptList& list, uint16_t opt_type);
+
  protected:
     char* storeHeader(char* buf);
     char* storeSubOpt(char* buf);
     int getSubOptSize();
 
-    TContainer< SPtr<TOpt> > SubOptions;
+    TOptContainer SubOptions;
     int OptType;
     TMsg* Parent;
     SPtr<TDUID> DUID;
     bool Valid;
 };
-
-typedef std::list< SPtr<TOpt> > TOptList;
 
 #endif

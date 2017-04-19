@@ -1,12 +1,12 @@
-/*                                                                           
- * Dibbler - a portable DHCPv6                                               
- *                                                                           
- * authors: Tomasz Mrugalski <thomson@klub.com.pl>                           
- *          Marek Senderski <msend@o2.pl>                                    
+/*
+ * Dibbler - a portable DHCPv6
+ *
+ * authors: Tomasz Mrugalski <thomson@klub.com.pl>
+ *          Marek Senderski <msend@o2.pl>
  * changes: Michal Kowalczuk <michal@kowalczuk.eu>
- *                                                                           
- * released under GNU GPL v2 only licence                                
- *                                                                           
+ *
+ * released under GNU GPL v2 only licence
+ *
  */
 
 #include "SrvMsgAdvertise.h"
@@ -23,32 +23,35 @@
 
 using namespace std;
 
-TSrvMsgAdvertise::TSrvMsgAdvertise(SPtr<TSrvMsgSolicit> solicit)
-    :TSrvMsg(solicit->getIface(),solicit->getAddr(), ADVERTISE_MSG, 
-	     solicit->getTransID())
+TSrvMsgAdvertise::TSrvMsgAdvertise(SPtr<TSrvMsg> solicit)
+    :TSrvMsg(solicit->getIface(),solicit->getRemoteAddr(), ADVERTISE_MSG,
+             solicit->getTransID())
 {
-    getORO( (Ptr*)solicit );
-    copyClientID( (Ptr*)solicit );
-    copyRelayInfo( (Ptr*)solicit );
-    copyAAASPI( (Ptr*)solicit );
-    copyRemoteID( (Ptr*)solicit );
+    getORO((Ptr*)solicit);
+    copyClientID((Ptr*)solicit);
+    copyRelayInfo(solicit);
+    copyAAASPI(solicit);
+    copyRemoteID(solicit);
+	copyRelayId(solicit);
+	copyRelayLinkAddress(solicit);
+
 
     if (!handleSolicitOptions(solicit)) {
-	IsDone = true;
-	return;
+        IsDone = true;
+        return;
     }
     IsDone = false;
 }
 
-bool TSrvMsgAdvertise::handleSolicitOptions(SPtr<TSrvMsgSolicit> solicit) {
+bool TSrvMsgAdvertise::handleSolicitOptions(SPtr<TSrvMsg> solicit) {
 
     processOptions((Ptr*)solicit, true); // quietly
 
     // append serverID, preference and possibly unicast
     appendMandatoryOptions(ORO);
-    
+
     //if client requested parameters and policy doesn't forbid from answering
-    appendRequestedOptions(ClientDUID, PeerAddr, Iface, ORO);
+    appendRequestedOptions(ClientDUID, PeerAddr_, Iface, ORO);
 
     appendStatusCode();
 
@@ -57,7 +60,6 @@ bool TSrvMsgAdvertise::handleSolicitOptions(SPtr<TSrvMsgSolicit> solicit) {
 
     appendAuthenticationOption(ClientDUID);
 
-    pkt = new char[this->getSize()];
     MRT_ = 0;
     send();
     return true;

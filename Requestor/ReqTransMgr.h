@@ -17,7 +17,6 @@
 #include "OptVendorSpecInfo.h"
 #include "ReqOpt.h"
 
-
 class ReqTransMgr {
 public:
     ReqTransMgr(TIfaceMgr * ifaceMgr);
@@ -26,7 +25,7 @@ public:
     bool CreateNewTCPSocket(char *dstAddr);
     bool SendMsg();
     bool SendTcpMsg();
-    bool WaitForRsp();
+    bool WaitForRsp(int &messageType);
     bool RetryConnection(); //if server doesn't answer retry attemption
     void TerminateTcpConn();
     bool ValidateMsg(char * msgBuf);
@@ -34,13 +33,14 @@ public:
 
 private:
     void PrintRsp(char * buf, int bufLen);
-    void PrintTcpRsp(char * buf, int bufLen);
+    void PrintTcpRsp(char * buf, int bufLen, int &messageType);
     bool ParseOpts(int msgType, int recurseLevel, char * buf, int bufLen);
     std::string BinToString(char * buf, int bufLen);
     TIfaceMgr * IfaceMgr;
     SPtr<TIfaceIface> Iface;
     ReqCfgMgr * CfgMgr;
     SPtr<TIfaceSocket> Socket;
+    SPtr<TIPv6Addr> myAddr;
 };
 
 #endif

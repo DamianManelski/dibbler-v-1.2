@@ -12,10 +12,11 @@
 #include "ClntOptTA.h"
 #include "ClntOptIAAddress.h"
 #include "ClntOptStatusCode.h"
-#include "Logger.h"
 #include "ClntOptIAAddress.h"
+#include "OptDUID.h"
 #include "ClntAddrMgr.h"
 #include "ClntIfaceMgr.h"
+#include "Logger.h"
 
 /** 
  * Constructor used during 
@@ -37,7 +38,7 @@ TClntOptTA::TClntOptTA(unsigned int iaid, TMsg* parent)
  * @param parent 
  */
 TClntOptTA::TClntOptTA(char * buf,int bufsize, TMsg* parent)
-:TOptTA(buf,bufsize, parent)
+    :TOptTA(buf,bufsize, parent), Iface(-1)
 {
     int pos=0, length=0;
     while(pos<bufsize) 
@@ -73,8 +74,7 @@ TClntOptTA::TClntOptTA(char * buf,int bufsize, TMsg* parent)
 }
 
 TClntOptTA::TClntOptTA(SPtr<TAddrIA> ta, TMsg* parent)
-    :TOptTA(ta->getIAID(), parent) 
-
+    :TOptTA(ta->getIAID(), parent), Iface(-1)
 {
     ta->firstAddr();
     SPtr<TAddrAddr> addr;
@@ -137,10 +137,24 @@ TClntOptTA::~TClntOptTA()
     // find this TA in addrMgr...
     SPtr<TAddrIA> ta = ClntAddrMgr().getTA(this->getIAID());
 
+    SPtr<TClntCfgIface> cfgIface;
+    if (! (cfgIface = ClntCfgMgr().getIface(this->Iface)) ) {
+        Log(Error) << "Unable to find TA class in the CfgMgr, on the "
+                   << this->Iface << " interface." << LogEnd;
+        return true;
+    }
+
+    SPtr<TOptDUID> duid = (Ptr*)Parent->getOption(OPTION_SERVERID);
+    if (!duid) {
+	Log(Error) << "Unable to find proper DUID while setting TA." << LogEnd;
+	return false;
+    }
+
     if (!ta) {
-	Log(Debug) << "Creating TA (iaid=" << this->getIAID() << ") in the addrDB." << LogEnd;
-        ta = new TAddrIA(this->Iface, TAddrIA::TYPE_TA, 0 /*if unicast, then this->Addr*/, 
-		         this->DUID, DHCPV6_INFINITY, 
+	Log(Debug) << "Creating TA (iaid=" << this->getIAID() << ") in the addrDB."
+                   << LogEnd;
+        ta = new TAddrIA(cfgIface->getName(), this->Iface, IATYPE_TA, 0 /*if
+                         unicast, then this->Addr*/, duid->getDUID(), DHCPV6_INFINITY,
 		         DHCPV6_INFINITY, this->getIAID());
         ClntAddrMgr().addTA(ta);
     }
@@ -169,7 +183,8 @@ TClntOptTA::~TClntOptTA()
 	    }
 	    // add this address in addrDB...
 	    ta->addAddr(optAddr->getAddr(), optAddr->getPref(), optAddr->getValid());
-	    ta->setDUID(this->DUID);
+	    ta->setDUID(duid->getDUID()
+);
 	    // ... and in IfaceMgr - 
 	    ptrIface->addAddr(optAddr->getAddr(), optAddr->getPref(), optAddr->getValid(), ptrIface->getPrefixLength());
 	    Log(Notice) << "Temp. address " << *optAddr->getAddr() << " has been added to "
@@ -197,11 +212,6 @@ TClntOptTA::~TClntOptTA()
 
     // mark this TA as configured
     SPtr<TClntCfgTA> cfgTA;
-    SPtr<TClntCfgIface> cfgIface;
-    if (! (cfgIface = ClntCfgMgr().getIface(this->Iface)) ) {
-        Log(Error) << "Unable to find TA class in the CfgMgr, on the " << this->Iface << " interface." << LogEnd;
-        return true;
-    }
     cfgIface->firstTA();
     cfgTA = cfgIface->getTA();
     cfgTA->setState(STATE_CONFIGURED);
@@ -233,17 +243,22 @@ void TClntOptTA::releaseAddr(long IAID, SPtr<TIPv6Addr> addr )
 		     << IAID << ") not present in addrDB." << LogEnd;
 }
 
-bool TClntOptTA::isValid()
+bool TClntOptTA::isValid() const
 {
-    SPtr<TClntOptIAAddress> addr;
-    this->firstAddr();
-    while (addr = this->getAddr()) {
-	if (!addr->getAddr()->linkLocal())
-	    continue;
-	Log(Warning) << "Address " << addr->getAddr()->getPlain() << " used in IA_TA (IAID=" 
-		     << IAID_ << ") is link local. The whole IA_TA option is considered invalid."
-		     << LogEnd;
-	return false;
+
+    const TOptList& opts = SubOptions.getSTL();
+
+    for (TOptList::const_iterator it = opts.begin(); it != opts.end(); ++it) {
+        if ((*it)->getOptType() != OPTION_IAADDR)
+            continue;
+        const TOptIAAddress* addr = (const TOptIAAddress*)it->get();
+
+        if (addr->getAddr()->linkLocal()) {
+            Log(Warning) << "Address " << addr->getAddr()->getPlain() << " used in IA_NA (IAID="
+                         << IAID_ << ") is link local. The whole IA option is considered invalid."
+                         << LogEnd;
+            return false;
+        }
     }
 
     return true;

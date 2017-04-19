@@ -11,10 +11,28 @@
 #include "SrvMsgInfRequest.h"
 #include "SrvOptIA_NA.h"
 #include "SrvOptIA_PD.h"
+#include <string>
+#include <unistd.h>
 
 namespace test {
+
+    /// @brief holds information about received IPv6 packet data
+    struct Pkt6Info {
+        Pkt6Info(int iface, char* msg, int size, SPtr<TIPv6Addr> addr, int port);
+        int Iface_;
+        std::vector<uint8_t> Data_;
+        SPtr<TIPv6Addr> Addr_;
+        int Port_;
+    };
+
+    /// @brief a collection of received (unparsed) packets
+    typedef std::vector<Pkt6Info> Pkt6Collection;
+
     class NakedSrvIfaceMgr: public TSrvIfaceMgr {
     public:
+
+        Pkt6Collection sent_pkts_;
+
         NakedSrvIfaceMgr(const std::string& xmlFile)
             : TSrvIfaceMgr(xmlFile) {
             TSrvIfaceMgr::Instance = this;
@@ -22,6 +40,10 @@ namespace test {
         ~NakedSrvIfaceMgr() {
             TSrvIfaceMgr::Instance = NULL;
         }
+        virtual bool send(int iface, char *msg, int size, SPtr<TIPv6Addr> addr, int port);
+        virtual int receive(unsigned long timeout, char* buf, int& bufsize,
+                            SPtr<TIPv6Addr> peer, SPtr<TIPv6Addr> myaddr);
+
     };
 
     class NakedSrvAddrMgr: public TSrvAddrMgr {
@@ -48,7 +70,8 @@ namespace test {
 
     class NakedSrvTransMgr: public TSrvTransMgr {
     public:
-        NakedSrvTransMgr(const std::string& xmlFile): TSrvTransMgr(xmlFile) {
+        NakedSrvTransMgr(const std::string& xmlFile, int port)
+            :TSrvTransMgr(xmlFile, port) {
             TSrvTransMgr::Instance = this;
         }
         List(TSrvMsg)& getMsgLst() { return MsgLst; }
@@ -59,87 +82,71 @@ namespace test {
 
     class ServerTest : public ::testing::Test {
     public:
-        ServerTest() {
-            clntDuid_ = new TDUID("00:01:00:0a:0b:0c:0d:0e:0f");
-            clntId_ = new TOptDUID(OPTION_CLIENTID, clntDuid_, NULL);
-            clntAddr_ = new TIPv6Addr("fe80::1234", true);
-
-            ifacemgr_ = new NakedSrvIfaceMgr("testdata/server-IfaceMgr.xml");
-
-            // try to pick up an up and running interface
-            ifacemgr_->firstIface();
-            while ( (iface_ = ifacemgr_->getIface()) && (!iface_->flagUp() || !iface_->flagRunning())) {
-            }
-
-        }
+        ServerTest();
 
         bool createMgrs(std::string config);
 
-        void createIAs(TMsg * msg) {
-            ia_iaid_ = 123;
-            ia_ = new TSrvOptIA_NA(ia_iaid_, 100, 200, msg);
-            ta_iaid_ = 456;
-            ta_ = new TOptTA(ta_iaid_, msg);
-            pd_iaid_ = 789;
-            pd_ = new TSrvOptIA_PD(pd_iaid_, 100, 200, msg);
-        }
+        void createIAs(TMsg * msg);
 
-        SPtr<TSrvMsgSolicit> createSolicit() {
+        void setIface(const std::string& name);
 
-            char empty[] = { SOLICIT_MSG, 0x1, 0x2, 0x3};
-            SPtr<TSrvMsgSolicit> sol = new TSrvMsgSolicit(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*sol));
-            return sol;
-        }
+        /// @brief creates SOLICIT message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgSolicit> createSolicit();
 
-        SPtr<TSrvMsgRequest> createRequest() {
-            char empty[] = { REQUEST_MSG, 0x1, 0x2, 0x4};
-            SPtr<TSrvMsgRequest> request = new TSrvMsgRequest(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*request));
-            return request;
-        }
+        /// @brief creates REQUEST message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgRequest> createRequest();
 
-        SPtr<TSrvMsgRenew> createRenew() {
-            char empty[] = { RENEW_MSG, 0x1, 0x2, 0x5};
-            SPtr<TSrvMsgRenew> renew = new TSrvMsgRenew(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*renew));
-            return renew;
-        }
+        /// @brief creates RENEW message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgRenew> createRenew();
 
-        SPtr<TSrvMsgRebind> createRebind() {
-            char empty[] = { REBIND_MSG, 0x1, 0x2, 0x6};
-            SPtr<TSrvMsgRebind> rebind = new TSrvMsgRebind(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*rebind));
-            return rebind;
-        }
+        /// @brief creates REBIND message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgRebind> createRebind();
 
-        SPtr<TSrvMsgRelease> createRelease() {
-            char empty[] = { RELEASE_MSG, 0x1, 0x2, 0x7};
-            SPtr<TSrvMsgRelease> release = new TSrvMsgRelease(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*release));
-            return release;
-        }
+        /// @brief creates RELEASE message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgRelease> createRelease();
 
-        SPtr<TSrvMsgDecline> createDecline() {
-            char empty[] = { DECLINE_MSG, 0x1, 0x2, 0x8};
-            SPtr<TSrvMsgDecline> decline = new TSrvMsgDecline(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*decline));
-            return decline;
-        }
+        /// @brief creates DECLINE message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgDecline> createDecline();
 
-        SPtr<TSrvMsgConfirm> createConfirm() {
-            char empty[] = { CONFIRM_MSG, 0x1, 0x2, 0x9};
-            SPtr<TSrvMsgConfirm> confirm = new TSrvMsgConfirm(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*confirm));
-            return confirm;
-        }
+        /// @brief creates CONFIRM message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgConfirm> createConfirm();
 
-        SPtr<TSrvMsgInfRequest> createInfRequest() {
-            char empty[] = { INFORMATION_REQUEST_MSG, 0x1, 0x2, 0xa};
-            SPtr<TSrvMsgInfRequest> infrequest = new TSrvMsgInfRequest(iface_->getID(), clntAddr_, empty, sizeof(empty));
-            createIAs(&(*infrequest));
-            return infrequest;
-        }
+        /// @brief creates INF-REQUEST message and IA_NA, IA_TA, IA_PD options
+        SPtr<TSrvMsgInfRequest> createInfRequest();
+
+        /// @brief creates an IAPREFIX option with specified parameters
+        ///
+        /// @param addr_txt text representation of the prefix
+        /// @param len prefix length
+        /// @param pref preferred lifetime (in seconds)
+        /// @param valid valid lifetime (in seconds)
+        ///
+        /// @return IAPREFIX option
+        TOptPtr createPrefix(const std::string& addr_txt, uint8_t len, uint32_t pref, uint32_t valid);
+
+
+        /// @brief Conducts prefix delegation assignment test
+        ///
+        /// Sends SOLCIT with IA_PD, checks that the ADVERTISE contains proper response
+        /// with expected values, then sends REQUEST and repeats the checks for
+        /// received REPLY.
+        ///
+        /// @param config
+        /// @param pd_to_be_sent
+        /// @param min_range
+        /// @param max_range
+        /// @param expected_prefix_len
+        /// @param expected_iaid
+        /// @param expected_t1
+        /// @param expected_t2
+        /// @param expected_pref
+        /// @param expected_valid
+        void prefixText(const std::string& config, const TOptPtr& pd_to_be_sent,
+                        const std::string& min_range, const std::string& max_range,
+                        uint8_t expected_prefix_len, uint32_t expected_iaid,
+                        uint32_t expected_t1, uint32_t expected_t2,
+                        uint32_t expected_pref, uint32_t expected_valid);
+
 
         SPtr<TSrvMsg> sendAndReceive(SPtr<TSrvMsg> clntMsg, unsigned int expectedMsgCount = 1);
 
@@ -151,12 +158,18 @@ namespace test {
                         SPtr<TIPv6Addr> maxRange, uint32_t iaid, uint32_t t1,
                         uint32_t t2, uint32_t pref, uint32_t valid, uint8_t prefixLen);
 
-        ~ServerTest() {
-            delete transmgr_;
-            delete cfgmgr_;
-            delete addrmgr_;
-            delete ifacemgr_;
-        }
+        void addRelayInfo(const std::string& linkAddr, const std::string& peerAddr,
+                          uint8_t hopCount, const TOptList& echoList);
+
+        void sendHex(const std::string& src_addr, uint16_t src_port,
+                     const std::string& dst_addr, uint16_t dst_port,
+                     const std::string& iface_name,
+                     const std::string& hex_data);
+
+        void clearRelayInfo();
+        void setRelayInfo(SPtr<TSrvMsg> msg);
+
+        ~ServerTest();
 
         NakedSrvIfaceMgr * ifacemgr_;
         NakedSrvCfgMgr * cfgmgr_;
@@ -175,6 +188,9 @@ namespace test {
         uint32_t ia_iaid_;
         uint32_t ta_iaid_;
         uint32_t pd_iaid_;
+
+        // Relay info
+        std::vector<TSrvMsg::RelayInfo> relayInfo_;
     };
 
 } // namespace test

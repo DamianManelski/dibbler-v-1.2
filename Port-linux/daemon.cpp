@@ -119,14 +119,13 @@ void daemon_die() {
 
 int init(const char * pidfile, const char * workdir) {
     string tmp;
-    /** @todo: buf needs to fit "/proc/%d/exe", where %d is pid_t
-     * (on my system it's 20 B exactly with positive PID. However this is not
-     * portable.) */
-    char buf[20];
-    char cmd[256];
-    
     pid_t pid = getPID(pidfile);
     if (pid > 0) {
+        /** @todo: buf needs to fit "/proc/%d/exe", where %d is pid_t
+         * (on my system it's 20 B exactly with positive PID. However this is not
+         * portable.) */
+        char buf[128];
+        char cmd[256];
 	/* @todo: ISO C++ doesn't support 'j' length modifier nor 'll' nor
 	 * PRIdMAX macro. So, long int is the biggest printable type.
 	 * God bless pid_t to fit into long int. */
@@ -202,11 +201,20 @@ int start(const char * pidfile, const char * workdir) {
     return result;
 }
 
+static pid_t pid;
+static void thaw_ptraced_daemon(int signal) {
+    cout << "Detaching process " << pid << "." << endl;
+    ptrace(PTRACE_DETACH, pid, NULL, NULL);
+}
+
 int stop(const char * pidfile) {
     int saved_errno;
     int ptrace_failed, p_status;
+    struct sigaction action;
+    sigset_t block_signals;
 
-    pid_t pid = getPID(pidfile);
+    pid = getPID(pidfile);
+
     if (pid==-1) {
 	cout << "Process is not running." << endl;
 	return -1;
@@ -216,12 +224,54 @@ int stop(const char * pidfile) {
 	return -1;
     }
 
+    /* Make sure daemon will not keep stopped if we terminates untimely. */
+    action.sa_handler = thaw_ptraced_daemon;
+    action.sa_flags = 0;
+    sigfillset(&block_signals);
+    action.sa_mask = block_signals;
+    if (sigaction(SIGHUP, &action, NULL) ||
+	    sigaction(SIGINT, &action, NULL) ||
+	    sigaction(SIGPIPE, &action, NULL) ||
+	    sigaction(SIGTERM, &action, NULL)) {
+	cout << "Unable to protect daemon from eternal sleep." << endl;
+    }
+
+    /* simply sending kill is not enough, because it will return immediately after
+       sending signal and this (sending) process would terminate shortly after.
+       this means that the following commands will create race condition:
+       dibbler-server stop
+       dibbler-server start
+
+       Unfortunately, this is a common case in various scripts.
+
+       Therefore we need those ptrace calls (or something similar) to wait
+       till the process to be terminated really dies, before we finish. */
     ptrace_failed = ptrace(PTRACE_ATTACH, pid, NULL, NULL);
     if (ptrace_failed) {
 	saved_errno = errno;
 	cout << "Attaching to process " << pid << " failed: "
 	     << strerror(saved_errno) << endl;
-	cout << "Warning: Can not guarantee for remote process termination" << endl;
+    } else {
+	/* Ptraced daemon will be stopped. However this is asynchronous from
+	 * ptrace() return. We have to synchronize to this point, otherwise
+	 * tracing assumptions cannot be held. */
+	while (1) {
+	    if (-1 == waitpid(pid, &p_status, 0)) {
+		saved_errno = errno;
+		cout << "Failed: " << strerror(saved_errno) << endl;
+		ptrace(PTRACE_DETACH, pid, NULL, NULL);
+		return -1;
+	    }
+	    if (WIFEXITED(p_status) || WIFSIGNALED(p_status) ||
+                (WIFSTOPPED(p_status) && WSTOPSIG(p_status) == SIGSTOP)) {
+		break;
+	    }
+	    ptrace(PTRACE_CONT, pid, NULL,
+                   WIFSTOPPED(p_status) ? WSTOPSIG(p_status) : 0);
+	}
+	/* For unknown reason, signal sent by tracee to ptrace-stopped process
+	 * is not queued. Daemon must be resumed before sending SIGTERM. */
+	ptrace(PTRACE_CONT, pid, NULL, NULL);
     }
 
     cout << "Sending TERM signal to process " << pid << endl;
@@ -232,20 +282,27 @@ int stop(const char * pidfile) {
 	return -1;
     }
 
-    if (!ptrace_failed) {
-	cout << "Waiting for signalled process termination... " << flush;
-	do {
-	    if (-1 == waitpid(pid, &p_status, 0)) {
-		saved_errno = errno;
-		cout << "Failed: " << strerror(saved_errno) << endl;
-		ptrace(PTRACE_DETACH, pid, NULL, NULL);
-		return -1;
-	    }
-	    ptrace(PTRACE_CONT, pid, NULL,
-		    WIFSTOPPED(p_status) ? WSTOPSIG(p_status) : 0);
-	} while (! (WIFEXITED(p_status) || WIFSIGNALED(p_status)) );
-	cout << "Done." << endl;
+    if (ptrace_failed) {
+	cout << "Warning: Can not guarantee for remote process termination" << endl;
+	return 0;
     }
+
+    cout << "Waiting for signalled process termination... " << flush;
+    while (1) {
+	if (-1 == waitpid(pid, &p_status, 0)) {
+	    saved_errno = errno;
+	    cout << "Failed: " << strerror(saved_errno) << endl;
+	    ptrace(PTRACE_DETACH, pid, NULL, NULL);
+	    return -1;
+	}
+	if (WIFEXITED(p_status) || WIFSIGNALED(p_status)) {
+	    break;
+	}
+	ptrace(PTRACE_CONT, pid, NULL,
+		(WIFSTOPPED(p_status) && WSTOPSIG(p_status) != SIGSTOP) ?
+		    WSTOPSIG(p_status) : 0);
+     }
+    cout << "Done." << endl;
 
     return 0;
 }

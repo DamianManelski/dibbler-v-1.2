@@ -37,10 +37,10 @@ int TIfaceSocket::tcpConnnectionCount=0;
  * @param ifaceonly force interface-only flag in setsockopt()?
  * @param reuse   should socket be bound with reuse flag in setsockopt()?
  */
-TIfaceSocket::TIfaceSocket(char * iface, int ifindex, int port,SPtr<TIPv6Addr> addr, bool ifaceonly, bool reuse) { 
-
+TIfaceSocket::TIfaceSocket(char * iface, int ifindex, int port,
+				   SPtr<TIPv6Addr> addr, bool ifaceonly, bool reuse) { 
     if (this->Count==0) {
-        FD_ZERO(getFDS());
+	FD_ZERO(getFDS());
     }
     this->Count++;
     this->createSocket(iface, ifindex, addr, port, ifaceonly, reuse);
@@ -131,8 +131,6 @@ int TIfaceSocket::createSocket(char * iface, int ifaceid, SPtr<TIPv6Addr> addr,
     return 0;
 }
 
-
-
 /**
  * creates socket on this interface.
  * @param iface - interface name
@@ -145,12 +143,15 @@ int TIfaceSocket::createSocket(char * iface, int ifaceid, SPtr<TIPv6Addr> addr,
 int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> addr, int port)
 {
     int sock;
-
     // store info about this socket
-    strncpy(this->Iface,iface,MAX_IFNAME_LENGTH);
+    strncpy(this->Iface, iface, MAX_IFNAME_LENGTH);
     this->IfaceID = ifaceid;
     this->Port = port;
     this->Status = STATE_NOTCONFIGURED;
+
+    // Let's remember the address. Otherwise the destructor will segfault when
+    // trying to print out which socket is being closed.
+    this->Addr = addr;
 
     // create socket using accept
     if (this->baseFD > 0) {
@@ -163,8 +164,10 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
         this->Status = STATE_CONFIGURED;
     } else {
 
-        this->Addr = addr;
         // create socket in standard way
+
+        addr->getAddr();
+        addr->getPlain();
         sock = sock_add_tcp(this->Iface, this->IfaceID, addr->getPlain(),this->Port);
         if (sock<0) {
             printError(sock, iface, ifaceid, addr, port);
@@ -182,8 +185,6 @@ int TIfaceSocket::createSocket_TCP(char *iface, int ifaceid, SPtr<TIPv6Addr> add
     }
     return 0;
 }
-
-
 /**
  * sends data through socket
  * @param buf - buffer to send
@@ -234,6 +235,7 @@ int TIfaceSocket::recv(char * buf, SPtr<TIPv6Addr> addr) {
     addr->setAddr(packedAddr);
     return len;
 }
+
 
 int TIfaceSocket::terminate_tcp(int fd, int how)
 {
@@ -327,6 +329,7 @@ int TIfaceSocket::recv_tcp(char *buf, SPtr<TIPv6Addr> addr)
     return len;
 }
 
+
 /**
  * returns FDS - FileDescriptorSet 
  * it's some really weird POSIX macro. It uses FD_SET, FD_ZERO and FD_CLR macros
@@ -371,6 +374,9 @@ SPtr<TIPv6Addr> TIfaceSocket::getAddr() {
 TIfaceSocket::~TIfaceSocket() {
     if (Status!=STATE_CONFIGURED) 
 	return;
+
+    Log(Debug) << "Closing socket " << this->FD << " on " << Addr->getPlain()
+               << ":" << Port << " on interface " << Iface << "/" << IfaceID << LogEnd;
 
     //execute low-level function
     sock_del(this->FD);
@@ -419,6 +425,11 @@ void TIfaceSocket::printError(int error, char * iface, int ifaceid, SPtr<TIPv6Ad
     if (error_message()) {
 	Log(Error) << "Low-level layer error message: " << error_message() << LogEnd;
     }
+}
+
+void TIfaceSocket::setMaxFD(int socketDescriptior)
+{
+	this->MaxFD = socketDescriptior;
 }
 
 // --------------------------------------------------------------------

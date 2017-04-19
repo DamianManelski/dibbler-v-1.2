@@ -11,12 +11,19 @@
 
 #include <sstream>
 #include <stdlib.h>
+#include <unistd.h>
 #include "Portable.h"
 #include "SmartPtr.h"
 #include "ClntIfaceMgr.h"
+#include "ClntTransMgr.h"
 #include "ClntMsgReply.h"
+#include "ClntMsgRenew.h"
 #include "ClntMsgAdvertise.h"
+#include "ClntMsgReconfigure.h"
 #include "Logger.h"
+
+
+
 
 #ifndef MOD_CLNT_DISABLE_DNSUPDATE
 #include "DNSUpdate.h"
@@ -94,18 +101,19 @@ SPtr<TClntMsg> TClntIfaceMgr::select(unsigned int timeout)
     int bufsize=4096;
     static char buf[4096];
     SPtr<TIPv6Addr> peer(new TIPv6Addr());
+    SPtr<TIPv6Addr> myaddr(new TIPv6Addr());
     int sockid;
 
-    sockid = TIfaceMgr::select(timeout, buf, bufsize, peer);
+    sockid = TIfaceMgr::select(timeout, buf, bufsize, peer, myaddr);
 
     if (sockid>0) {
         if (bufsize<4) {
-            if (buf[0]!=CONTROL_MSG) {
-                Log(Warning) << "Received message is too short (" << bufsize
-                             << ") bytes." << LogEnd;
-            } else {
-                Log(Warning) << "Control message received." << LogEnd;
+            if (bufsize == 1 && buf[0] == CONTROL_MSG) {
+                Log(Debug) << "Control message received." << LogEnd;
+                return 0;
             }
+            Log(Warning) << "Received message is too short (" << bufsize
+                         << ") bytes, at least 4 bytes are required.." << LogEnd;
             return 0; // NULL
         }
         int msgtype = buf[0];
@@ -118,14 +126,17 @@ SPtr<TClntMsg> TClntIfaceMgr::select(unsigned int timeout)
 
         switch (msgtype) {
         case ADVERTISE_MSG:
-            ptr = new TClntMsgAdvertise(ifaceid,peer,buf,bufsize);
-#ifndef MOD_DISABLE_AUTH
-            if (!ptr->validateAuthInfo(buf, bufsize, ClntCfgMgr().getAuthAcceptMethods())) {
-                    Log(Error) << "Message dropped, authentication validation failed." << LogEnd;
-                    return 0;
-            }
-#endif
-            return ptr;
+            ptr = new TClntMsgAdvertise(ifaceid, peer, buf, bufsize);
+	    break;
+
+        case REPLY_MSG:
+            ptr = new TClntMsgReply(ifaceid, peer, buf, bufsize);
+	    break;
+
+        case RECONFIGURE_MSG:
+            ptr = new TClntMsgReconfigure(ifaceid, peer, buf, bufsize);
+            break;
+
         case SOLICIT_MSG:
         case REQUEST_MSG:
         case CONFIRM_MSG:
@@ -134,28 +145,29 @@ SPtr<TClntMsg> TClntIfaceMgr::select(unsigned int timeout)
         case RELEASE_MSG:
         case DECLINE_MSG:
         case INFORMATION_REQUEST_MSG:
-            Log(Warning) << "Illegal message type " << msgtype << " received." << LogEnd;
-            return 0; // NULL
-        case REPLY_MSG:
-            ptr = new TClntMsgReply(ifaceid, peer, buf, bufsize);
-#ifndef MOD_DISABLE_AUTH
-            if (!ptr->validateAuthInfo(buf, bufsize, ClntCfgMgr().getAuthAcceptMethods())) {
-                    Log(Error) << "Message dropped, authentication validation failed." << LogEnd;
-                    return 0;
-            }
-#endif
-            return ptr;
-
-        case RECONFIGURE_MSG:
-            Log(Warning) << "Reconfigure Message is currently not supported." << LogEnd;
-            return 0; // NULL
-        case RELAY_FORW_MSG: // those two msgs should not be visible for client
+        case RELAY_FORW_MSG:
         case RELAY_REPL_MSG:
         default:
             Log(Warning) << "Message type " << msgtype << " is not supposed to "
                          << "be received by client. Check your relay/server configuration." << LogEnd;
             return 0;
         }
+
+#ifndef MOD_DISABLE_AUTH
+        if (ClntCfgMgr().getAuthProtocol() == AUTH_PROTO_RECONFIGURE_KEY) {
+            ptr->getReconfKeyFromAddrMgr();
+        }
+
+	if (!ptr->validateAuthInfo(buf, bufsize, ClntCfgMgr().getAuthProtocol(),
+                                   ClntCfgMgr().getAuthAcceptMethods())) {
+
+            /// @todo Implement AUTH_DROP_UNAUTH_ on client-side
+            Log(Warning) << "Message dropped, authentication validation failed." << LogEnd;
+            return 0;
+	}
+#endif
+	return ptr;
+
     } else {
         return 0;
     }
@@ -195,12 +207,15 @@ TClntIfaceMgr::TClntIfaceMgr(const std::string& xmlFile)
                                                           ptr->globaladdr,
                                                           ptr->globaladdrcount,
                                                           ptr->hardwareType);
+        iface->setMBit(ptr->m_bit);
+        iface->setOBit(ptr->o_bit);
         this->IfaceLst.append(iface);
 
         ptr = ptr->next;
     }
     if_list_release(ifaceList); // allocated in pure C, and so release it there
 
+    dump();
 }
 
 TClntIfaceMgr::~TClntIfaceMgr() {
@@ -389,14 +404,18 @@ void TClntIfaceMgr::dump()
  *
  * @return true if operation was successful, false otherwise
  */
-bool TClntIfaceMgr::addPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLen, unsigned int pref, unsigned int valid)
+bool TClntIfaceMgr::addPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLen,
+                              unsigned int pref, unsigned int valid,
+                              TNotifyScriptParams* params /*= NULL*/)
 {
-    return modifyPrefix(iface, prefix, prefixLen, pref, valid, PREFIX_MODIFY_ADD);
+    return modifyPrefix(iface, prefix, prefixLen, pref, valid, PREFIX_MODIFY_ADD, params);
 }
 
-bool TClntIfaceMgr::updatePrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLen, unsigned int pref, unsigned int valid)
+bool TClntIfaceMgr::updatePrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLen,
+                                 unsigned int pref, unsigned int valid,
+                                 TNotifyScriptParams* params /*= NULL*/)
 {
-    return modifyPrefix(iface, prefix, prefixLen, pref, valid, PREFIX_MODIFY_UPDATE);
+    return modifyPrefix(iface, prefix, prefixLen, pref, valid, PREFIX_MODIFY_UPDATE, params);
 }
 
 /**
@@ -408,14 +427,16 @@ bool TClntIfaceMgr::updatePrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLe
  *
  * @return true if operation was successful, false otherwise
  */
-bool TClntIfaceMgr::delPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLen)
+bool TClntIfaceMgr::delPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLen,
+                              TNotifyScriptParams* params /*= NULL*/)
 {
-    return modifyPrefix(iface, prefix, prefixLen, 0, 0, PREFIX_MODIFY_DEL);
+    return modifyPrefix(iface, prefix, prefixLen, 0, 0, PREFIX_MODIFY_DEL, params);
 }
 
 bool TClntIfaceMgr::modifyPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLen,
                                  unsigned int pref, unsigned int valid,
-                                 PrefixModifyMode mode)
+                                 PrefixModifyMode mode,
+                                 TNotifyScriptParams* params /*= NULL*/)
 {
     SPtr<TClntIfaceIface> ptrIface = (Ptr*)getIfaceByID(iface);
     if (!ptrIface) {
@@ -454,7 +475,19 @@ bool TClntIfaceMgr::modifyPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLe
     // get a list of interfaces that we will assign prefixes to
     TIfaceIfaceLst ifaceLst;
     vector<string> ifaceNames = ClntCfgMgr().getDownlinkPrefixIfaces();
+
+    // skip PD split, because it was administratively disabled
+    // (i.e. user specified downlink-prefix-ifaces none
+    bool skip = false;
+    if (ifaceNames.size() == 1 && (ifaceNames[0] == "none")) {
+        skip = true;
+    }
+
     for (vector<string>::const_iterator name = ifaceNames.begin(); name != ifaceNames.end(); ++name) {
+        if (*name == "none") {
+            break;
+        }
+
         SPtr<TIfaceIface> x = getIfaceByName(*name);
         if (x)
             ifaceLst.push_back(x);
@@ -462,7 +495,7 @@ bool TClntIfaceMgr::modifyPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLe
             Log(Warning) << "Interface " << *name << " specified in downlink-prefix-ifaces is missing." << LogEnd;
     }
 
-    if (ifaceLst.size() == 0) {
+    if (!skip && (ifaceLst.empty()) ) {
         SPtr<TIfaceIface> x;
         firstIface();
         while ( x = (Ptr*)getIface() ) {
@@ -500,22 +533,33 @@ bool TClntIfaceMgr::modifyPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLe
                 continue;
             }
 
+            Log(Debug) << "PD: Interface " << x->getFullName() << " is suitable for PD." << LogEnd;
             ifaceLst.push_back(x);
         }
     }
 
-    Log(Info) << "PD: Using " << ifaceLst.size() << " suitable interface(s):";
     TIfaceIfaceLst::const_iterator i;
+    string dl_ifaces;
     for (TIfaceIfaceLst::const_iterator i=ifaceLst.begin(); i!=ifaceLst.end(); ++i) {
-        Log(Cont) << (*i)->getName() << " ";
+      dl_ifaces += string((*i)->getName()) + " ";
     }
-    Log(Cont) << LogEnd;
+    if (skip) {
+        dl_ifaces += string("[none]");
+    }
+    Log(Info) << "PD: Using " << ifaceLst.size() << " suitable interface(s):"
+	      << dl_ifaces << LogEnd;
 
-    if (ifaceLst.size() == 0) {
+    // pass this info to the script as well
+    if (params) {
+        params->addParam("DOWNLINK_PREFIX_IFACES", dl_ifaces);
+    }
+
+    if (!skip && ifaceLst.empty()) {
         Log(Warning) << "Suitable interfaces not found. Delegated prefix not split." << LogEnd;
         return true;
     }
 
+    stringstream prefix_split; // textual representation, used to pass as script
     for (TIfaceIfaceLst::const_iterator i=ifaceLst.begin(); i!=ifaceLst.end(); ++i) {
 
         char buf[16];
@@ -557,6 +601,11 @@ bool TClntIfaceMgr::modifyPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLe
         Log(Notice) << "PD: " << action << " prefix " << tmpAddr->getPlain() << "/" << subprefixLen
                     << " on the " << (*i)->getFullName() << " interface." << LogEnd;
 
+	if (params) {
+	  prefix_split << (*i)->getName() << " " << tmpAddr->getPlain()
+		       << "/" << subprefixLen << " ";
+	}
+
         switch (mode) {
         case PREFIX_MODIFY_ADD:
             status = prefix_add( (*i)->getName(), (*i)->getID(), tmpAddr->getPlain(), subprefixLen, pref, valid);
@@ -577,10 +626,18 @@ bool TClntIfaceMgr::modifyPrefix(int iface, SPtr<TIPv6Addr> prefix, int prefixLe
 
     }
 
-    if (conf) // at least one prefix configured successfully
+    if (params) {
+      params->addParam("DOWNLINK_PREFIXES", prefix_split.str());
+    }
+
+    // If at least one prefix configured successfully (or we were told to skip)
+    // then it's a great success!
+    if (conf || skip) {
         return true;
-    else
+    } else {
+        // We failed again... dammit.
         return false;
+    }
 }
 
 void TClntIfaceMgr::redetectIfaces() {
@@ -596,9 +653,21 @@ void TClntIfaceMgr::redetectIfaces() {
     }
     while (ptr!=NULL) {
         iface = getIfaceByID(ptr->id);
-        if (iface && (ptr->flags!=iface->getFlags())) {
-            Log(Notice) << "Flags on interface " << iface->getFullName() << " has changed (old=" << hex <<iface->getFlags()
-                        << ", new=" << ptr->flags << ")." << dec << LogEnd;
+        if (!iface) {
+            ptr = ptr->next;
+            continue;
+        }
+
+        if  ( (ptr->flags != iface->getFlags()) ||
+              (ptr->m_bit != iface->getMBit()) ||
+              (ptr->o_bit != iface->getOBit())
+            ) {
+            Log(Notice) << "Flags on interface " << iface->getFullName()
+                        << " has changed (old=" << hex <<iface->getFlags()
+                        << ", new=" << ptr->flags << dec
+                        << ", M bit:" << (iface->getMBit()?"1":"0") << "->" << (ptr->m_bit?"1":"0")
+                        << ", O bit:" << (iface->getOBit()?"1":"0") << "->" << (ptr->o_bit?"1":"0")
+                        << ")."  << LogEnd;
             iface->updateState(ptr);
         }
         ptr = ptr->next;
@@ -636,3 +705,5 @@ ostream & operator <<(ostream & strum, TClntIfaceMgr &x) {
     strum << "</ClntIfaceMgr>" << std::endl;
     return strum;
 }
+
+

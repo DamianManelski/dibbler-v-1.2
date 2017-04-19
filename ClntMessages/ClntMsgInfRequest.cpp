@@ -44,7 +44,15 @@ TClntMsgInfRequest::TClntMsgInfRequest(SPtr<TClntCfgIface> iface)
         Log(Info) << "Sending anonymous INF-REQUEST (ClientID not included)." << LogEnd;
     }
 
-    this->appendRequestedOptions();
+    // Append the options we want to configure
+    appendRequestedOptions();
+
+    // If there is no ORO (or it is empty), skip the message.
+    SPtr<TClntOptOptionRequest> oro = (Ptr*) getOption(OPTION_ORO);
+    if (!oro || !oro->count()) {
+        IsDone = true;
+        return;
+    }
 
     appendAuthenticationOption();
     appendElapsedOption();
@@ -97,8 +105,6 @@ TClntMsgInfRequest::TClntMsgInfRequest(TOptList ReqOpts,
             case OPTION_INTERFACE_ID:
             case OPTION_RECONF_MSG:
             case OPTION_AUTH:
-            case OPTION_AAAAUTH:
-            case OPTION_KEYGEN:
 	    case OPTION_ELAPSED_TIME:       //delete the old elapsed option,as we will append a new one
                 delOption(opt->getOptType());
                 break;        
@@ -118,6 +124,12 @@ TClntMsgInfRequest::TClntMsgInfRequest(TOptList ReqOpts,
 
 void TClntMsgInfRequest::answer(SPtr<TClntMsg> msg)
 {
+
+    copyAAASPI(msg);
+
+    TClntMsg::answer(msg);
+
+#if 0
     //which option have we requested from server
     SPtr<TClntOptOptionRequest> ptrORO;
     ptrORO = (Ptr*)getOption(OPTION_ORO);
@@ -165,6 +177,8 @@ void TClntMsgInfRequest::answer(SPtr<TClntMsg> msg)
         IsDone=true;
     }
     return;
+
+#endif
 }
     
 void TClntMsgInfRequest::doDuties()

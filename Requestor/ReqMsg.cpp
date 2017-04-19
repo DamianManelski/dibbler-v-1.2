@@ -29,7 +29,7 @@ TReqMsg::TReqMsg(int iface, SPtr<TIPv6Addr> addr, char* &buf, int &bufSize)
 
 //TMsg(int iface, SPtr<TIPv6Addr> addr, char *&buf, int msgType, int msgSize)
 TReqMsg::TReqMsg(int iface, SPtr<TIPv6Addr> addr, char *buf, int msgType,int msgSize)
-    :TMsg(iface,addr,msgType)
+    :TMsg(iface,addr,msgType,true)
 {
 
 }
@@ -65,7 +65,6 @@ int TReqMsg::getReqMsgType()
 {
     return ReqMsgType;
 }
-
 void TReqMsg::addOption(SPtr<TOpt> opt)
 {
     Options.push_back(opt);

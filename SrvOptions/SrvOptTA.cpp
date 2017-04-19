@@ -7,13 +7,6 @@
  *
  */
 
-#ifdef WIN32
-#include <winsock2.h>
-#endif
-#ifdef LINUX
-#include <netinet/in.h>
-#endif
-
 #include "SrvOptTA.h"
 #include "SrvOptIAAddress.h"
 #include "OptStatusCode.h"
@@ -22,8 +15,6 @@
 #include "DHCPConst.h"
 
 using namespace std;
-
-#define MAX_TA_RANDOM_TRIES 100
 
 /*
  * Create IA_TA option based on receive buffer
@@ -69,7 +60,7 @@ TSrvOptTA::TSrvOptTA(SPtr<TSrvOptTA> queryOpt, SPtr<TSrvMsg> clientMsg,
                      int msgType, TMsg* parent)
     :TOptTA(queryOpt->getIAID(), parent) {
     ClntDuid  = clientMsg->getClientDUID();
-    ClntAddr  = clientMsg->getAddr();
+    ClntAddr  = clientMsg->getRemoteAddr();
     Iface     = clientMsg->getIface();
     this->OrgMessage = msgType;
     switch (msgType) {
@@ -185,13 +176,12 @@ void TSrvOptTA::releaseAllAddrs(bool quiet) {
     }
 }
 
-/**
- * this method finds a temp. address for this client, marks it as used and then
- * creates IAAADDR option containing this option.
- *
- *
- * @return
- */
+/// this method finds a temp. address for this client, marks it as used and then
+/// creates IAAADDR option containing this option.
+///
+/// @param clientMsg
+///
+/// @return IAADDR option with new temporary address (or NULL)
 SPtr<TSrvOptIAAddress> TSrvOptTA::assignAddr(SPtr<TSrvMsg> clientMsg) {
     SPtr<TSrvCfgIface> ptrIface;
     ptrIface = SrvCfgMgr().getIfaceByID(this->Iface);
@@ -219,7 +209,7 @@ SPtr<TSrvOptIAAddress> TSrvOptTA::assignAddr(SPtr<TSrvMsg> clientMsg) {
     SPtr<TIPv6Addr> addr;
     int safety=0;
 
-    while (safety<MAX_TA_RANDOM_TRIES) {
+    while (safety < SERVER_MAX_TA_RANDOM_TRIES) {
 	addr = ta->getRandomAddr();
 	if (SrvAddrMgr().taAddrIsFree(addr)) {
 	    if ((this->OrgMessage == REQUEST_MSG)) {
@@ -235,7 +225,7 @@ SPtr<TSrvOptIAAddress> TSrvOptTA::assignAddr(SPtr<TSrvMsg> clientMsg) {
 	}
 	safety++;
     }
-    Log(Error) << "Unable to randomly choose address after " << MAX_TA_RANDOM_TRIES << " tries." << LogEnd;
+    Log(Error) << "Unable to randomly choose address after " << SERVER_MAX_TA_RANDOM_TRIES << " tries." << LogEnd;
     return 0;
 }
 

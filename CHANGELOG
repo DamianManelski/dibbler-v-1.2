@@ -1,7 +1,173 @@
 
   Dibbler changelog
- ------------------- 
-0.8.3 [not-released-yet]
+ -------------------
+1.0.0 [not-released-yet]
+  - Added missing includes for NetBSD (and probably other BSDs). Thanks to
+    Justin Cormack for providing a patch.
+  - Fix for client crash if PD was requested, the server returned IA_PD,
+    but without any IAPREFIX options inside. Added better checks. Thanks to
+    Maciej Fijalkowski for providing a patch.
+  - Cli: Received options are now applied in stateless mode (bug #246)
+  - Rel: remote-id option is now being inserted correctly (RFC4649)
+  - Rel: Relay agent is now able to insert relay-id option (RFC5460)
+  - Rel: Relay agent is now able to insert client link-layer address option
+    (RFC6939)
+  - Srv: drop-unicast added. Server is now able to respond with status code
+    set to UseMulticast if a client sent his packets to unicast. According
+    to author's knowledge this was the last missing functionality of RFC3315.
+
+1.0.0RC2 [2014-07-12]
+  - Cli: segfault when invalid or incomplete auth parameters are specified
+    Thanks to George Joseph for a patch (bug #289)
+  - Srv: fixed leases are not added to AddrMgr. Thanks to George Joseph for
+    a patch (bug #291)
+  - Log message fixed. Thanks to George Joseph for a patch (bug #292)
+  - Client options are now passed to notify scripts (bug #293)
+  - Fedora RPM script contributted by Patrick Pichon, thanks!
+  - Srv: Experimental performance-mode added
+  - Compliation fix for Mac OS X 10.9/Apple LLVM 5.0 (clang-500)
+  - The code compiles again with --disable-auth
+  - Cli: does not send or expect AUTH option by default.
+  - Win: Service dependency fixed for Vista and above
+  - Notify script called only when non-empty script name specified.
+    (thanks to Hernan Martinez for contributed patches)
+  - Support for ppc64le architecture added (thanks to Snehal for sending patches)
+    Dibbler now uses alpha version of libtool 2.4.2.418, which features
+    fixes for ppc64le.
+  - Cli/Srv: no longer crashes when reconfigure-key is empty (thanks to Hernan
+    Martinez for fixing this!)
+  - Doc update: vendor-spec options examples are now updated
+    (thanks to Michael Rapoport for spotting this)
+  - Win: detection whether client is run with administrative privileges
+  - gtest tests linking problem on Ubuntu 13.10 fixed. Sort of. The tests are
+    not linked statically by default. There is a --enable-gtest-static flag
+    that controls that behaviour.
+  - Minor Developer's Guide update.
+  - Srv: reconfigure-enabled 0,1 directive added to the server. It controls
+    whether server sends RECONFIGURE messages at start-up.
+  - Srv: received prefix is now being truncated to appropriate length, so
+    client sending prefix hints with host part set should no longer confuse
+    the server (bug #295)
+  - Win: Better shutdown when shutting down from Microsoft Mgmt Console (bug #162)
+    (Thanks to Hernan Martinez for the fix!)
+  - Added support for IPv6 address in vendor-specific information option, and
+    fixed bugs in other vendor-specific options formats (based on a patch
+    provided by Herman Martinez, thanks!)
+  - Srv: Unicast address of IA_PD stored in the database is no longer lost after
+    server restarts. That should make the reconfigure mechanism usable again.
+  - Linux: daemon shutdown improvement. There was a possibility that the daemon
+    will stall while shutting down. Thanks to Petr Pisar for providing a patch!
+    (bug #251)
+  - Cli: Dibbler now configures received addresses with /128 prefix, as mandated
+    by the RFCs. In versions 0.5.0 to 1.0.0RC1 it used to be /64, which was an
+    arbitrarily chosen value that happened to work in most, but not all cases.
+    Please see discussion in https://klub.com.pl/bugzilla3/show_bug.cgi?id=222
+    for details (bug #222)
+  - Srv: Fix in remote-id option support. Thanks to Richard Ouseph for providing
+    a patch. (bug #299)
+  - Srv: Multiple instances of vendor-options with the same vendor-id are now
+    sent as one option with multiple sub-options, as clarified in RFC3315bis
+    (bug #304)
+  - Win32 Cli: Address lifetimes are now properly renewed. Thanks to Shine for
+    the patch!
+  - Srv: Fixed calculations for available prefixes if the was a lot of prefixes
+    (more than 2^30) (bug #295)
+  - Cli: It is possible to disable prefix split by passing "none" to
+    downlink-prefix-ifaces (bug #306, github #10)
+  - Cli: Ability to define prefix parameter to be sent as hints. Thanks to
+    Maciek Fijalkowski for the patch!
+  - Cli: Updated syntax for sending address hints. See section 6.8.3 in the
+    User's Guide for details.
+  - Cli: Sanity checks added: client now refuses to mix stateless with ia,ta,pd
+    options. Thanks to Arifumi Matsumoto for reporting this issue!
+  - Cli: empty inf-request messages should no longer be sent. Thanks to
+    Arifumi Matsumoto for reporting this issue!
+  - Cli: information refresh time option can only be used in stateless mode.
+  - Cli: invalid prefixes (pref > valid) are now rejected (bug #308)
+  - Srv: Support for remote-id fixed. Thanks to Richard Ouseph for the patch
+    (bug #299)
+  - Win: Migrated to Visual Studio 2013 Express. All files from previous
+    VS were removed.
+
+1.0.0RC1 [2013-07-30]
+  - Reconfigure support (original patch by Grzegorz Pluto + tons of fixes)
+  - Authentication rewritten (now uses RFC3315 option formats)
+  - Auth: support for reconfigure-key added
+  - Auth: support for delayed authentication
+  - Linux: support for M,O bits reading from Router Advertisements (bug #49)
+  - Srv: server no longer crashes when options are defined in global scope
+    (issue reported by Michael Thorsager, thanks!)
+  - Srv: database sanitization now works also for relays (bug #288)
+    (issue reported by Michael Thorsager, thanks!)
+  - After 10 years of development, all features from RFC3315 are now supported!
+    (there are outstanding bugs, though...)
+
+0.8.4 [2013-06-27]
+  - Rel: Unknown message types are now relayed (as a forward compatibility
+    feature)
+  - Cli: DOWNLINK_PREFIX_IFACES and DOWNLINK_PREFIXES variables are now passed
+    to the notify script (bug #265)
+  - AC_FUNC_MALLOC/AC_FUNC_REALLOC are no longer used
+  - OpenBSD bug workaround for invalid link-local addresses reported is now
+    extended to all other BSDs as this affects pfSense as well
+  - Cli/Srv: interface names are stored in *-AddrMgr.xml
+  - Srv: Database is now checked against missing or interface index changes
+    (bugs #192, #247, #250)
+  - Cli: Database is now checked against missing or interface index changes
+    (bugs #192, #247, #250)
+  - Srv: Temporary addresses are now stored in the database (bug #284)
+  - Cli: Temporary addresses are now expired and removed properly (bug #285)
+  - Linux: pthreads is now linked only when --enable-link-state is used
+    (bug #249)
+  - Srv: Buffer for incoming UDP packets increased to 64k
+  - Srv: incoming packet destination address check is disabled by default and
+    can be enabled with --enable-dst-addr-check parameter (bug #286)
+
+0.8.4RC1 [2013-04-27]
+  - Inteface-ids shorter than 4 bytes are not handled properly
+    (patch by Tao Cui)
+  - It is now possible to send custom options (hex, string, address or address-list
+    is supported for now, but other data formats may be added in the future)
+  - Responses to packets sent from global addresses are now sent via sockets
+    bound to global addresses
+  - Server now properly calculates number of available addresses and prefixes
+    after expiration (bug #264)
+  - Srv: info about second and following relays are now passed to the
+    script properly
+  - Cli: fix for a double free in error handing (if file read failed).
+    Thanks to Jean-Jacques Sarton for reporting and providing patch (bug #266)
+  - client.vendor-class.en and client.vendor-class.data expressions are now
+    supported (but not tested yet)
+  - Srv: Relay support refactored. Unknown options are now handled better
+    and any development related to relays will be easier
+  - Srv: logical relay interfaces are no longer present in server-IfaceMgr.xml
+  - Classes for USER_CLASS and VENDOR_CLASS options implemented.
+  - Linux: stop command fix (bug #268)
+  - Win32: dibbler waits for netsh.exe execution completion, because netsh.exe
+    does not seem to be reentrant
+  - Win32: DNS configuration is now flushed during the first DNS configuration
+  - Win32: Client no longer crashes when expired addresses is used with confirm
+    support enabled
+  - Cli: "option fqdn" now contains hostname by default (bug #267)
+  - Win32: Client inactive-mode improvements (patch by Vaclav Michalek)
+  - Compilation fix for Mac OS X 10.8.0 (bug #277), patch by Michael Thorsager
+  - Linux: cosmetic low-level Linux improvements (bug #276)
+  - FQDN option improvements (fully qualified, hostname only and empty options)
+    are now supported
+  - Daemon mode should now be able to read sockets properly (bug #275)
+    (patch by Jean-Jacques Sarton)
+  - Linux compilation fixes (bug #282)
+  - Srv: Confirm support improved, now also using subnet declaration (bug #240,
+    bug #259)
+
+0.8.3 [2013-01-20]
+  - Cli: workaround for odd link-local interface detection code on OpenBSD
+  - AFTR option on-wire encoding fixed
+  - Compilation fix in Port-linux/interface.c on CentOS 5.x
+  - DUID is now written properly on 64 bit Windows
+  - Resource leak (socket not closed) in iterface detection fixed (bug #255)
+
+0.8.3RC1 [2012-08-17]
   - Srv: address and prefix assignment rewritten
   - Srv: implemented per-client prefix configuration
   - Cli: Reasons for rejecting IA_NA/IA_PD are now logged (i.e. T1>T2)
@@ -18,6 +184,23 @@
   - Rel: Recent regression (complain about server and client on the same link) fixed
   - Srv: relays parameters (link, peer address) are now passed to the notify script
   - Cli: client no longer crashes, when client-AddrMgr.xml is empty (bug #245)
+  - Srv: Secure DNS Update (using TSIG) is now supported
+  - Srv: Expired leases are now removed from the DNS (using DNS Update)
+  - Srv: Many smaller FQDN related fixes
+  - Srv: Support for FQDN-related data in server-AddrMgr.xml improved
+  - Srv: Server no longer loads empty IAs or empty clients from server-AddrMgr.xml
+  - Experimental port to Solaris 11
+  - Srv: Cached entries for reserved address/prefix will no longer cause server to assign
+    reserved address/prefix to another client
+  - Srv: Fixed problem when reserved address/prefix was assigned to different client when
+    nearing addresses/prefixes depletion
+  - Cli: Script can now be called in stateless mode (inf-request)
+  - Cli: Script for MacOS dns and domain setting added
+  - Cli: Silent address expiration (T1>valid lifetime) is now supported properly
+  - Cli/Srv: FQDN, Vendor options are now passed to script correctly
+  - Cli: IAID is now parsed properly in PD definitions in client-AddrMgr.xml
+  - Cli: Silent prefix expiration (T1>valid lifetime) is now supported properly
+  - Srv: Skeleton functions for logging MAC address added
 
 0.8.2 [2012-02-29]
   - Cli: code refactoring. Code is now a bit smaller. Removed classes: ClntOpt*Servers,
@@ -83,7 +266,7 @@
   - Doc: Fixed bug in example in server man page
   - Srv: answers to RENEW are now constructed properly (single SERVERID is enough)
   - All: Inteface link address is now detected properly on Mac OS X
-  - All: Many Mac OS port fixes. It should be operational now. 
+  - All: Many Mac OS port fixes. It should be operational now.
   - Linux: client now adds addresses with proper preferred/valid lifetimes
   - Linux: client now properly updates addresses during renew/rebind
   - Cli: Client now properly copies prefixes from ADVERTISE to REQUEST (bug #197)
@@ -91,7 +274,7 @@
   - Cli: It is now possible to define serveral prefixes in one pd
   - Cli: It is now possible to define specific prefix in pd as a hint
   - Cli: T1,T2 are now properly set for PD
-  - Cli: Duplicate IA,TA and PD are no longer created in database, when 
+  - Cli: Duplicate IA,TA and PD are no longer created in database, when
     restarting client with existing leases.
   - Cli: Client no longer silently quits, if adding/updating prefix failed.
   - Linux/Mac OS: daemonizing should close stdin/stdout/stderr (bug #188)
@@ -166,7 +349,7 @@
   - Numerous fixes after 3rd bakeoff meeting (Philadelphia)
 
  0.7.0 [was never properly released]
-	
+
  0.7.0RC1 [2007-12-31]
   - Leasequery support (new entity: requestor added)
   - Numerous fixes after 2nd bakeoff meeting (Vancouver)
@@ -258,7 +441,7 @@
   - Linux: multiple domains are now added and removed properly to /etc/resolv.conf
   - Linux: NTP servers are now set up properly. (bug #138, #139)
   - All: Messages with reconfigure-accept or vendor-class options are now accepted
- 
+
  0.5.0 [2006-10-05]
   - FQDN fixes
   - Documentation update and cleanup
@@ -270,7 +453,8 @@
   - log-mode PRECISE added
   - log entries are appended (previously log files were overwritten at startup)
   - Modular features (optional compilation of additional features) added
-  - Clnt: Addresses are added with /64 prefix by default (use strict-rfc-no-routing to use previous behavior, i.e. /128 prefix)
+  - Clnt: Addresses are added with /64 prefix by default (use strict-rfc-no-routing to use previous
+    behavior, i.e. /128 prefix)
 
  0.4.2 [2006-02-03] (DSFG cleanup release)
   - No bugfixes or new features
@@ -289,7 +473,7 @@
 
  0.4.0 [2005-03-15]
   - white list (accept-only) works ok (bug #106)
-	
+
  0.4.0-RC2 [2005-03-08]
   - Domain List option is now properly built and parsed (bug #104)
   - Srv/Clnt/Relay no longer crash when invalid interface is specified (bug #105)
@@ -303,7 +487,7 @@
   - Server now supports relays (bug #70)
   - Working directories are not properly stored in the *-CfgMgr.xml files (bug #100)
   - Linux: Paths to config files fixed (bugs #96, #97)
-	
+
  0.3.1 [2004-12-27] (bugfix release)
   - Documenatation (PDF files) now should look ok on all systems
   - Linux: URLs in the manual are now visible (bugs #92, #93)
@@ -376,15 +560,15 @@
   - Srv: Now properly creates DUID (bug #45, #46)
   - Doc: a real documentation included
   - Srv: class-max-lease, iface-max-lease parameters added
-  - Client: config file logic changed, no-config is no longer needed. 
-  - Client: No more stupid "Interface is loopback, down, not multicast-capable or 
+  - Client: config file logic changed, no-config is no longer needed.
+  - Client: No more stupid "Interface is loopback, down, not multicast-capable or
     not present in the system" message.
   - Linux: Sending through wrong interface problem fixed
   - Linux: build process rewritten
 
  0.1.1
-  - Hmmm... don't remember :) 
- 
+  - Hmmm... don't remember :)
+
  0.1.0
   - First release
 

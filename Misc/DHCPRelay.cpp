@@ -8,6 +8,7 @@
  *
  */
       
+#include <stdlib.h>
 #include "DHCPRelay.h"
 #include "Logger.h"
 #include "Portable.h"
@@ -23,7 +24,7 @@ volatile int serviceShutdown;
 TDHCPRelay::TDHCPRelay(const std::string& config)
 {
     serviceShutdown = 0;
-    srand(now());
+    srand((uint32_t)time(NULL));
     IsDone = false;
 
     TRelIfaceMgr::instanceCreate(RELIFACEMGR_FILE);
@@ -61,7 +62,8 @@ void TDHCPRelay::run()
 	
 	RelTransMgr().doDuties();
 	unsigned int timeout = DHCPV6_INFINITY/2;
-	if (serviceShutdown)     timeout = 0;
+	if (serviceShutdown)
+            timeout = 0;
 	
 	if (!silent)
 	    Log(Debug) << "Accepting messages." << LogEnd;
@@ -84,7 +86,7 @@ void TDHCPRelay::run()
 	Log(Notice) << "Received " << msg->getName() << " on " << ptrIface->getName() 
 		    << "/" << iface;
 	if (msg->getType()!=RELAY_FORW_MSG && msg->getType()!=RELAY_REPL_MSG)
-	    Log(Cont) << hex << ",TransID=0x" << msg->getTransID() << dec;
+	    Log(Cont) << hex << ",trans-id=0x" << msg->getTransID() << dec;
 	Log(Cont) << ", " << msg->countOption() << " opts:";
 	SPtr<TOpt> ptrOpt;
 	msg->firstOption();

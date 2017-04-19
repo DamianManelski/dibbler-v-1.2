@@ -14,10 +14,10 @@ AM_CPPFLAGS += -I$(top_srcdir)/Misc
 AM_CPPFLAGS += $(GTEST_INCLUDES) -Wno-long-long -Wno-variadic-macros
 
 info:
-        @echo "GTEST_LDADD=$(GTEST_LDADD)"
-        @echo "GTEST_LDFLAGS=$(GTEST_LDFLAGS)"
-        @echo "GTEST_INCLUDES=$(GTEST_INCLUDES)"
-        @echo "HAVE_GTEST=$(HAVE_GTEST)"
+	@echo "GTEST_LDADD=$(GTEST_LDADD)"
+	@echo "GTEST_LDFLAGS=$(GTEST_LDFLAGS)"
+	@echo "GTEST_INCLUDES=$(GTEST_INCLUDES)"
+	@echo "HAVE_GTEST=$(HAVE_GTEST)"
 
 TESTS =
 if HAVE_GTEST
@@ -25,6 +25,7 @@ TESTS += SrvCfgMgr_tests
 
 SrvCfgMgr_tests_SOURCES = run_tests.cpp
 SrvCfgMgr_tests_SOURCES += SrvCfgMgr_unittest.cc
+SrvCfgMgr_tests_SOURCES += expressions_unittest.cc
 
 SrvCfgMgr_tests_LDFLAGS = $(AM_LDFLAGS) $(GTEST_LDFLAGS)
 
@@ -41,8 +42,11 @@ SrvCfgMgr_tests_LDADD += $(top_builddir)/Messages/libMessages.a
 SrvCfgMgr_tests_LDADD += $(top_builddir)/SrvOptions/libSrvOptions.a
 SrvCfgMgr_tests_LDADD += $(top_builddir)/Options/libOptions.a
 SrvCfgMgr_tests_LDADD += $(top_builddir)/Misc/libMisc.a
-SrvCfgMgr_tests_LDADD += $(top_builddir)/poslib/libposlib.a
+SrvCfgMgr_tests_LDADD += $(top_builddir)/poslib/libPoslib.a
+SrvCfgMgr_tests_LDADD += $(top_builddir)/nettle/libNettle.a
 SrvCfgMgr_tests_LDADD += $(top_builddir)/@PORT_SUBDIR@/libLowLevel.a
+
+dist_noinst_DATA = testdata/info.txt testdata/keys-mapping
 endif
 
 noinst_PROGRAMS = $(TESTS)

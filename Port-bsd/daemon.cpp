@@ -14,6 +14,8 @@
 #include <signal.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include "Portable.h"
 #include "Logger.h"
@@ -115,10 +117,11 @@ void daemon_die() {
 
 int init(const char * pidfile, const char * workdir) {
     string tmp;
-    char buf[20];
-    char cmd[256];
     int pid = getPID(pidfile);
     if (pid > 0) {
+        /** @todo: This is Linux specific. It will most likely not work on BSD or Mac OS */
+        char buf[20];
+        char cmd[256];
 	sprintf(buf,"/proc/%d", pid);
 	if (!access(buf, F_OK)) {
 	    sprintf(buf, "/proc/%d/exe", pid);
@@ -147,7 +150,7 @@ int init(const char * pidfile, const char * workdir) {
     unlink(pidfile);
     ofstream pidFile(pidfile);
     if (!pidFile.is_open()) {
-	Log(Crit) << "Unable to createdsaddsadas " << pidfile << " file." << LogEnd;
+	Log(Crit) << "Unable to create " << pidfile << " file." << LogEnd;
 	return 0;
     }
     pidFile << getpid();

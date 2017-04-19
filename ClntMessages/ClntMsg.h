@@ -43,11 +43,15 @@ public:
     void appendAuthenticationOption();
     void appendElapsedOption();
     void appendRequestedOptions();
+    bool checkReceivedAuthOption();
 
     bool validateReplayDetection();
 
     // virtual std::string getName() = 0;
     virtual void answer(SPtr<TClntMsg> reply);
+
+    void getReconfKeyFromAddrMgr();
+    void deletePD(SPtr<TOpt> pd_);
 
  protected:
     bool check(bool clntIDmandatory, bool srvIDmandatory);

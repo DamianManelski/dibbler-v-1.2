@@ -12,15 +12,17 @@
 #include "Logger.h"
 #include "SrvOptLQ.h"
 #include "AddrClient.h"
+#include "OptStatusCode.h"
 
 TSrvMsgLeaseQueryDone::TSrvMsgLeaseQueryDone(SPtr<TSrvMsgLeaseQuery> query)
-    :TSrvMsg(query->getIface(), query->getAddr(), LEASEQUERY_DONE_MSG,
-	     query->getTransID())
+    :TSrvMsg(query->getIface(), query->getRemoteAddr(), LEASEQUERY_DONE_MSG,
+			query->getTransID(), query->Bulk)
 {
-
+	// append Status code option
+	Options.push_back(new TOptStatusCode(STATUSCODE_SUCCESS, "Bulk Leasequery transaction succeed.", this));
 }
 
-#if 0
+
 bool TSrvMsgLeaseQueryDone::check() {
     // this should never happen
     return true;
@@ -35,8 +37,8 @@ unsigned long TSrvMsgLeaseQueryDone::getTimeout() {
 void TSrvMsgLeaseQueryDone::doDuties() {
     IsDone = true;
 }
-#endif
 
-string TSrvMsgLeaseQueryDone::getName() {
+
+std::string TSrvMsgLeaseQueryDone::getName() const {
     return "LEASE-QUERY-DONE";
 }

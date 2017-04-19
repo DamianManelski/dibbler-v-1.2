@@ -9,10 +9,12 @@
  */
 
 #include <string.h>
+#include <unistd.h>
 #include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <stdlib.h>
 #include <errno.h>
 #include "Portable.h"
 #include "IfaceMgr.h"
@@ -53,7 +55,6 @@ TIfaceMgr::TIfaceMgr(const std::string& xmlFile, bool getIfaces)
         return;
     }
 
-
     while (ptr!=NULL) {
         Log(Notice) << "Detected iface " << ptr->name << "/" << ptr->id
                  // << ", flags=" << ptr->flags
@@ -68,10 +69,14 @@ TIfaceMgr::TIfaceMgr(const std::string& xmlFile, bool getIfaces)
                                                        ptr->globaladdr,
                                                        ptr->globaladdrcount,
                                                        ptr->hardwareType));
+        iface->setMBit(ptr->m_bit);
+        iface->setOBit(ptr->o_bit);
         this->IfaceLst.append(iface);
         ptr = ptr->next;
     }
     if_list_release(ifaceList); // allocated in pure C, and so release it there
+
+    dump();
 }
 
 /*
@@ -137,18 +142,18 @@ SPtr<TIfaceIface> TIfaceMgr::getIfaceBySocket(int fd) {
     return 0;
 }
 
-/*
- * tries to read data from any socket on all interfaces
- * returns after time seconds.
- * @param time listens for time seconds
- * @param buf buffer
- * @param bufsize buffer size
- * @param peer informations about sender
- *
- * @return socket descriptor (or 0)
- */
+/// tries to read data from any socket on all interfaces
+/// returns after time seconds.
+/// @param time listens for time seconds
+/// @param buf buffer
+/// @param bufsize buffer size
+/// @param peer [out] sender address
+/// @param myaddr [out] local IPv6 address
+///
+/// @return socket descriptor (or negative values for errors)
 int TIfaceMgr::select(unsigned long time, char *buf,
-                      int &bufsize, SPtr<TIPv6Addr> peer, bool tcpClient) {
+                      int &bufsize, SPtr<TIPv6Addr> peer,
+                      SPtr<TIPv6Addr> myaddr,  bool tcpClient) {
     struct timeval czas;
     int result;
     if (time > DHCPV6_INFINITY/2)
@@ -168,29 +173,38 @@ int TIfaceMgr::select(unsigned long time, char *buf,
     fds = *TIfaceSocket::getFDS();
 
     int maxFD;
-    //maxFD = FD_SETSIZE;
     maxFD = TIfaceSocket::getMaxFD() + 1;
 
-    result = ::select(maxFD,&fds,NULL, NULL, &czas);
+    // no sockets to listen  on... hopefully this is just inactive mode,
+    // not an error
+    if (!TIfaceSocket::getCount()) {
+        Log(Debug) << "No sockets open. Sleeping for " << time << " seconds." << LogEnd;
+#ifdef WIN32
+        Sleep(time*1000); // Windows sleep is specified in milliseconds
+#else
+        sleep(time); // Posix sleep is specified in seconds
+#endif
+        return 0;
+    }
+    result = ::select(maxFD, &fds, NULL, NULL, &czas);
 
     // something received
 
     if (result==0) { // timeout, nothing received
         bufsize = 0;
-        return 0;
+        return -1;
     }
     if (result<0) {
         char buf[512];
         strncpy(buf, strerror(errno),512);
-        Log(Debug) << "Failed to read sockets (select() returned " << result << "), error=" << buf << LogEnd;
-        return 0;
+        Log(Debug) << "Failed to read sockets (select() returned " << result
+                   << "), error=" << buf << LogEnd;
+        return -1;
     }
 
     SPtr<TIfaceIface> iface;
     SPtr<TIfaceSocket> sock;
-
     bool found = 0;
-
     IfaceLst.first();
     while ( (!found) && (iface = IfaceLst.get()) ) {
         iface->firstSocket();
@@ -198,17 +212,14 @@ int TIfaceMgr::select(unsigned long time, char *buf,
             sock->getFD();
             if (FD_ISSET(sock->getFD(),&fds)) {
                 found = true;
-                Log(Info) << "Socket found:" << sock->getFD() <<LogEnd;
                 break;
-            } else {
-                Log(Info) << "Socket isn't set but is present" << sock->getFD() <<LogEnd;
             }
         }
     }
 
     if (!found) {
-        Log(Error) << "Seems like internal error. Unable to find any socket with incoming data." << LogEnd;
-        return 0;
+        Log(Error) << "Internal error. Can't find any socket with incoming data." << LogEnd;
+        return -1;
     }
 
     char myPlainAddr[48];   // my plain address
@@ -218,29 +229,13 @@ int TIfaceMgr::select(unsigned long time, char *buf,
     stype = getsOpt(sock->getFD());
     if(stype != -1) {
         if (stype==SOCK_DGRAM) {
-            result = sock_recv(sock->getFD(), myPlainAddr, peerPlainAddr, buf, bufsize);
-            char peerAddrPacked[16];
-            char myAddrPacked[16];
-            inet_pton6(peerPlainAddr,peerAddrPacked);
-            inet_pton6(myPlainAddr,myAddrPacked);
-            peer->setAddr(peerAddrPacked);
-
-            #ifndef WIN32
-                // check if we've received data addressed to us. There's problem with sockets binding.
-                // If there are 2 open sockets (one bound to multicast and one to global address),
-                // each packet sent on multicast address is also received on unicast socket.
-                char anycast[16] = {0};
-
-                if (!iface->flagLoopback()
-                    && memcmp(sock->getAddr()->getAddr(), myAddrPacked, 16)
-                    && memcmp(sock->getAddr()->getAddr(), anycast, 16) ) {
-                        Log(Debug) << "Received data on address " << myPlainAddr << ", expected "
-                               << *sock->getAddr() << ", message ignored." << LogEnd;
-                        bufsize = 0;
-                        return 0;
-                }
-            #endif
-            this->isTcp=false;
+    result = sock_recv(sock->getFD(), myPlainAddr, peerPlainAddr, buf, bufsize);
+    char peerAddrPacked[16];
+    char myAddrPacked[16];
+    inet_pton6(peerPlainAddr,peerAddrPacked);
+    inet_pton6(myPlainAddr,myAddrPacked);
+    peer->setAddr(peerAddrPacked);
+    myaddr->setAddr(myAddrPacked);
         } else if (stype==SOCK_STREAM) {
             if(!tcpClient) {
                 if(!this->isTcpSet) {
@@ -248,18 +243,18 @@ int TIfaceMgr::select(unsigned long time, char *buf,
                     if(iface->addTcpSocket(sock->getAddr(),sock->getPort(),sock->getFD()))
                             this->isTcpSet = true;
                 } else {
-                    result = sock_recv_tcp(iface->getSocket()->getMaxFD(), buf, bufsize, flags);
+					if (!FD_ISSET(sock->getMaxFD(), &fds))
+					{
+						sock->setMaxFD(sock->getFD());
+					}
+					int descriptor = iface->getSocket()->getMaxFD();
+					result = sock_recv_tcp(descriptor, buf, bufsize, flags);
                 }
             } else {
                 result = sock_recv_tcp(sock->getFD(), buf, bufsize, flags);
             }
             this->isTcp = true;
-
         }
-
-    } else {
-        Log(Error) << "Seems like internal error. Unable to find any socket with incoming data." << LogEnd;
-        return 0;
     }
 
     if (result==-1) {
@@ -267,6 +262,21 @@ int TIfaceMgr::select(unsigned long time, char *buf,
         bufsize = 0;
         return -1;
     }
+
+#ifdef MOD_SRV_DST_ADDR_CHECK
+    // check if we've received data addressed to us. There's problem with sockets binding.
+    // If there are 2 open sockets (one bound to multicast and one to global address),
+    // each packet sent on multicast address is also received on unicast socket.
+    char anycast[16] = {0};
+    if (!iface->flagLoopback()
+        && memcmp(sock->getAddr()->getAddr(), myAddrPacked, 16)
+        && memcmp(sock->getAddr()->getAddr(), anycast, 16) ) {
+            Log(Debug) << "Received data on address " << myPlainAddr << ", expected "
+                   << *sock->getAddr() << ", message ignored." << LogEnd;
+            bufsize = 0;
+            return -1;
+    }
+#endif
 
     bufsize = result;
     return sock->getFD();
@@ -295,6 +305,7 @@ void TIfaceMgr::dump()
  */
 TIfaceMgr::~TIfaceMgr()
 {
+    closeSockets();
 }
 
 string TIfaceMgr::printMac(char * mac, int macLen) {
@@ -437,6 +448,7 @@ void TIfaceMgr::notifyScripts(const std::string& scriptName, SPtr<TMsg> question
         break;
     case RENEW_MSG:
     case REBIND_MSG:
+    case INFORMATION_REQUEST_MSG:
         action = "update";
         break;
     default:
@@ -459,7 +471,14 @@ void TIfaceMgr::notifyScripts(const std::string& scriptName, SPtr<TMsg> question
     params.addParam("IFINDEX", tmp.str().c_str());
     tmp.str("");
 
-    params.addParam("REMOTE_ADDR", reply->getAddr()->getPlain());
+    string remote;
+    if (reply->getRemoteAddr()) {
+      remote = reply->getRemoteAddr()->getPlain();
+    } else {
+      remote = string(ALL_DHCP_RELAY_AGENTS_AND_SERVERS);
+    }
+
+    params.addParam("REMOTE_ADDR", remote);
 
     params.addParam("CLNT_MESSAGE", question->getName());
 
@@ -471,19 +490,68 @@ void TIfaceMgr::notifyScripts(const std::string& scriptName, SPtr<TMsg> question
         optionToEnv(params, opt, "SRV");
     }
 
-#if 0
     // add options from client message
     question->firstOption();
     while( SPtr<TOpt> opt = question->getOption() ) {
         optionToEnv(params, opt, "CLNT");
     }
-#endif
 
     notifyScript(scriptName, action, params);
 }
 
+/// @brief closes all sockets
+void TIfaceMgr::closeSockets() {
+    Log(Debug) << "Closing all sockets." << LogEnd;
+    firstIface();
+    while (SPtr<TIfaceIface> iface = getIface()) {
+        iface->firstSocket();
 
+        while (SPtr<TIfaceSocket> socket = iface->getSocket()) {
+            iface->delSocket(socket->getFD());
+        }
+    }
+}
 
+/// @brief closes all sockets
+void TIfaceMgr::closeTcpSocket() {
+
+	int sockId, stype, failCount = 0;
+	bool found = false;
+	// tricks with FDS macros
+
+	fd_set fds;
+	fds = *TIfaceSocket::getFDS();
+	SPtr<TIfaceSocket> sock;
+	
+
+	while (!found) {
+		sockId = sock->getMaxFD();
+		stype = getsOpt(sockId);
+		if (stype != -1) {
+			if (stype == SOCK_STREAM)
+				found = true;
+		}
+		else {
+			Log(Error) << "Cannot close TCP connection with:" << sockId << LogEnd;
+			failCount++;
+		}
+	}
+
+	//FD_CLR(sockId, &fds);
+	sock->terminate_tcp(sockId, 2);
+	Log(Debug) << "Closing current TCP socket with ID" << sockId <<  LogEnd;
+	//this->delSocket(sockId);
+	
+	firstIface();
+	while (SPtr<TIfaceIface> iface = getIface()) {
+		iface->firstSocket();
+
+		while (SPtr<TIfaceSocket> socket = iface->getSocket()) {
+			if(socket->getFD() == sockId)
+				iface->delSocket(sockId);
+		}
+	}
+}
 // --------------------------------------------------------------------
 // --- operators ------------------------------------------------------
 // --------------------------------------------------------------------

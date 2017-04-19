@@ -63,8 +63,9 @@ TClntOptIAPrefix::TClntOptIAPrefix( char * buf, int bufSize, TMsg* parent)
     }
 }
 
-TClntOptIAPrefix::TClntOptIAPrefix( SPtr<TIPv6Addr> addr, long pref, long valid, char prefixLength, TMsg* parent)
-	:TOptIAPrefix(addr,prefixLength,pref,valid, parent)
+TClntOptIAPrefix::TClntOptIAPrefix(SPtr<TIPv6Addr> addr, long pref, long valid,
+                                   char prefixLength, TMsg* parent)
+    :TOptIAPrefix(addr,prefixLength,pref,valid, parent)
 {
 
 }
@@ -74,11 +75,13 @@ bool TClntOptIAPrefix::doDuties()
     return false;
 }
 
-bool TClntOptIAPrefix::isValid()
+bool TClntOptIAPrefix::isValid() const
 {
-    if (TOptIAPrefix::isValid())
-        return this->getValid()>=this->getPref();
-    else
+    if (!TOptIAPrefix::isValid())
         return false;
 
+    if (getValid() == 0)
+        return false;
+
+    return this->getValid() >= this->getPref();
 }

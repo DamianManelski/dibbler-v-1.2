@@ -25,8 +25,8 @@ class TIfaceIface{
  public:
     friend std::ostream & operator <<(std::ostream & strum, TIfaceIface &x);
 
-    TIfaceIface(const char * name, int id, unsigned int flags, char* mac, int maclen, char* llAddr, int llAddrCnt, char * globalAddr, int globalCnt, int hwType);
-
+    TIfaceIface(const char * name, int id, unsigned int flags, char* mac, 
+                int maclen, char* llAddr, int llAddrCnt, char * globalAddr, int globalCnt, int hwType);
     char * getName();
     int getID();
     std::string getFullName();
@@ -38,6 +38,12 @@ class TIfaceIface{
     bool flagMulticast();
     bool flagLoopback();
     void updateState(struct iface * x);
+
+    // --- RA bits ---
+    void setMBit(bool m);
+    void setOBit(bool o);
+    bool getMBit();
+    bool getOBit();
 
     // ---layer-2 related---
     int   getMacLen();
@@ -62,9 +68,9 @@ class TIfaceIface{
     
     // ---socket related---
     bool addSocket(SPtr<TIPv6Addr> addr,int port, bool ifaceonly, bool reuse);
+    // bool addSocket(int port, bool ifaceonly, bool reuse); 
     bool addTcpSocket(SPtr<TIPv6Addr> addr, int port, int baseFD);
     bool closeTcpConnection();
-
     bool delSocket(int id);
     void firstSocket();
     SPtr <TIfaceSocket> getSocketByFD(int fd);
@@ -83,12 +89,11 @@ class TIfaceIface{
     int Maclen;
     char* LLAddr;
     int LLAddrCnt;
+    bool M_bit_; // M (managed) bit from Router Advertisement
+    bool O_bit_; // O (other conf) bit from Router Advertisement
 
     List(TIPv6Addr) GlobalAddrLst;
-    
-//    char * GlobalAddr;
-//    int GlobalAddrCnt;
-    
+
     int HWType;
 
     // sockets
